@@ -4,11 +4,31 @@ from nodes import WalkerNode
 
 class HardSumEmbeddingNode(WalkerNode):
 
+    """
+    A class representing a P2P network node that forwards messages via a biased random walk.
+    The walker selects the neighbor whose embedding has the highest dot product with the query embedding.
+    It does not discard seen messages and tries to avoid sending the message to nodes that have already seen it.
+    
+    Instance attributes:
+        remove_succesful_queries (bool): Discards queries that have found the golden document.
+            In practice, the node does not know which is the golden document,
+            this is meant as a computational shortcut for the hit count and the hop count length,
+            which are not affected by the next hops.
+        --> for other attributes, refer to Node.
+    """
+
+
     def __init__(self, name, dim, remove_successful_queries=False):
+
+        """
+        Constructs a HardSumEmbeddingNode.
+        """
+
         self.remove_successful_queries = remove_successful_queries
         super(HardSumEmbeddingNode, self).__init__(name, dim)
 
     def get_personalization(self):
+
         if len(self.docs) == 0:
             return np.zeros(self.emb_dim)
         personalization = 0
@@ -17,6 +37,19 @@ class HardSumEmbeddingNode(WalkerNode):
         return personalization
 
     def get_next_hops(self, query):
+
+        """
+        Implements get_next_hops by Node and overrides Walker.
+        Selects the neighbor whose embedding has the highest dot product with the query embedding.
+        Tries to filter nodes that have already seen the message but reverts if no options remain.
+        
+        Arguments:
+            query (QueryMessage): The message to be forwarded.
+
+        Returns:
+            List[Node]: The nodes to forward the message.
+        """
+                
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
             return []
@@ -52,7 +85,26 @@ class HardSumEmbeddingNode(WalkerNode):
 
 class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
 
+    """
+    %% EXPERIMENTAL, USE WITH CARE %%
+    
+    A class representing a P2P network node that forwards messages via a biased random walk.
+    The walker selects the neighbor whose embedding has the highest dot product with the query embedding,
+    Every spawn_interval, it also samples two nodes instead of one.
+    It does not discard seen messages and tries to avoid sending the message to nodes that have already seen it.
+    
+    Instance attributes:
+        spawn_interval (int): Hop interval at which to spawn walkers.
+        --> for other attributes, refer to Node.
+    """
+
+
     def __init__(self, spawn_interval=5, *args, **kwargs):
+
+        """
+        Constructs a HardSumL2EmbeddingNodeWithSpawn.
+        """
+
         self.spawn_interval = spawn_interval
         super(HardSumL2EmbeddingNodeWithSpawn, self).__init__(*args, **kwargs)
 
@@ -65,6 +117,19 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
         return personalization
 
     def get_next_hops(self, query):
+        
+        """
+        Implements get_next_hops by Node and overrides Walker.
+        Similar to HardSumEmbeddingNode but also spawns two walkers every spawn_interval.
+        Tries to filter nodes that have already seen the message but reverts if no options remain.
+        
+        Arguments:
+            query (QueryMessage): The message to be forwarded.
+
+        Returns:
+            List[Node]: The nodes to forward the message.
+        """
+        
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
             return []
@@ -98,6 +163,18 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
 
 class HardSumL2EmbeddingNode(WalkerNode):
 
+    """
+    %% EXPERIMENTAL, USE WITH CARE %%
+    
+    A class representing a P2P network node that forwards messages via a biased random walk.
+    The walker selects the neighbor whose embedding has the lowest L2 distance from the query embedding.
+    It does not discard seen messages and tries to avoid sending the message to nodes that have already seen it.
+    
+    Instance attributes:
+        spawn_interval (int): Hop interval at which to spawn walkers.
+        --> for other attributes, refer to Node.
+    """
+
     def get_personalization(self):
         if len(self.docs) == 0:
             return np.zeros(self.emb_dim)
@@ -107,6 +184,19 @@ class HardSumL2EmbeddingNode(WalkerNode):
         return personalization
 
     def get_next_hops(self, query):
+
+        """
+        Implements get_next_hops by Node and overrides Walker.
+        Selects the neighbor whose embedding has the lowest L2 distance with the query embedding.
+        Tries to filter nodes that have already seen the message but reverts if no options remain.
+        
+        Arguments:
+            query (QueryMessage): The message to be forwarded.
+
+        Returns:
+            List[Node]: The nodes to forward the message.
+        """
+
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
             return []
@@ -136,10 +226,36 @@ class HardSumL2EmbeddingNode(WalkerNode):
 
 class SoftSumEmbeddingNode(WalkerNode):
 
+    """
+    %% EXPERIMENTAL, USE WITH CARE %%
+    
+    A class representing a P2P network node that forwards messages via a biased random walk.
+    The walker samples a node from the top 3 neighbors with the highest dot product with the query embedding.
+    Meant for robustness and variety.
+    It does not discard seen messages and tries to avoid sending the message to nodes that have already seen it.
+    
+    Instance attributes:
+        --> refer to Node.
+    """
+
     def get_personalization(self):
         return np.sum(doc.embedding for doc in self.docs.values())
 
     def get_next_hops(self, query):
+
+        """
+        Implements get_next_hops by Node and overrides Walker.
+        Samples a node from the top 3 neighbors whose embeddings have the highest dot product with the query embedding.
+        Avoids sampling always the top node for variety.
+        Tries to filter nodes that have already seen the message but reverts if no options remain.
+        
+        Arguments:
+            query (QueryMessage): The message to be forwarded.
+
+        Returns:
+            List[Node]: The nodes to forward the message.
+        """
+                
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
             return []
