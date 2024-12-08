@@ -1,22 +1,22 @@
+import numpy as np
+
 from abc import abstractmethod
 from datatypes import Document, MessageQuery
 from collections import defaultdict
 
 
 class Node:
-
     """
     Abstract base class representing an embedding-aware P2P network node.
-    The node can store pre-computed document embeddings,
-    as well as calculate and diffuse node embeddings via personalized page rank.
+    The node can store pre-computed document embeddings, calculate node embeddings,
+    and diffuse the latter via personalized page rank.
 
-    The base class is extended by other node classes in the nodes package
-    that implement specific ways to calculate personalization embeddings
-    and to forward query messages to neighboring nodes. 
+    The base class is extended by other classes in the nodes package
+    that implement different ways of forwarding query messages to neighbors.
 
     Class attributes:
         ppr_a (float): The teleport probability of the personalized page rank diffusion.
-    
+
     Instance attributes:
         name (str): Identification of the node in the network. Should be unique.
         neighbors (dict[Node, np.array]): Dictionary of nodes and their learnt embeddings. Both are updated when a query is received.
@@ -36,7 +36,6 @@ class Node:
         cls.ppr_a = ppr_a
 
     def __init__(self, name, emb_dim):
-
         """
         Constructs a Node object.
 
@@ -58,7 +57,6 @@ class Node:
         self.embedding = self.personalization
 
     def clear(self):
-
         """
         Resets the node by clearing all node structures and the node embeddings.
         """
@@ -72,28 +70,26 @@ class Node:
         self.embedding = self.personalization
 
     def add_doc(self, doc: Document):
-        
         """
         Adds a document to the node. Triggers the update of the node embeddings.
 
         Arguments:
             doc (Document): The document to add to the node.
         """
-        
+
         self.docs[doc.name] = doc
 
         self.personalization = self.get_personalization()
         self.embedding = self.personalization
 
     def add_query(self, query: MessageQuery):
-
         """
         Adds a query message to the node at the start of a simulation.
 
         Arguments:
             query (MessageQuery): A message representing a query.
         """
-                
+
         assert query.ttl >= 0, f"{query}, ttl should be >= 0"
         query.check_now(self.docs)
         if query.is_alive():
@@ -105,34 +101,28 @@ class Node:
         else:
             query.kill(self, reason="ttl was initialized to 0")
 
-    def filter_seen_from(self, nodes, query, as_type=list):
-        '''Utility function that filters the nodes from which a message was seen.'''
-        return as_type(set(nodes).difference(self.seen_from[query.name]))
+    def get_personalization(self):
+        """
+        Calculates the personalization embedding as the sum of all stored documents.
 
-    def filter_sent_to(self, nodes, query, as_type=list):
-        '''Utility function that filters the nodes to which a message was sent in the past.'''
-        return as_type(set(nodes).difference(self.sent_to[query.name]))
+        Returns:
+            np.array: The personalization embedding.
+        """
 
-    def filter_query_history(self, nodes, query, as_type=list):
-        '''Utility function that filters the nodes from which a message has passed as recorded in its history.'''
-        nodes = {node.name: node for node in nodes}
-        for visited_node_name in query.visited_nodes:
-            if visited_node_name in nodes:
-                nodes.pop(visited_node_name)
-        return as_type(nodes.values())
-
-    def has_queries_to_send(self):
-        '''Utility function that checks if node has pending messages to forward.'''
-        return len(self.query_queue) > 0
+        if len(self.docs) == 0:
+            return np.zeros(self.emb_dim)
+        personalization = 0
+        for doc in self.docs.values():
+            personalization += doc.embedding
+        return personalization
 
     def send_embedding(self):
-
         """
         Returns an embedding to be sent to neighboring nodes.
         The actual transfer is done by the simulation object.
         Shares the burden of computing the personalized page rank diffusion with the receiving nodes.
         """
-        
+
         return self.embedding / max(1, len(self.neighbors)) ** 0.5
 
     @DeprecationWarning
@@ -145,7 +135,6 @@ class Node:
         )
 
     def receive_embedding(self, neighbor, neighbor_embedding):
-        
         """
         Receives an update from a neighboring node.
         Shares the burden of computing the personalized page rank diffusion with the sending node.
@@ -169,10 +158,28 @@ class Node:
                 + neighbor_embedding * (1 - ppr_a)
             ) / (N + 1) ** 0.5 + ppr_a * self.personalization
         self.neighbors[neighbor] = neighbor_embedding
-        # self.update_embedding()
+
+    def filter_seen_from(self, nodes, query, as_type=list):
+        """Utility function that filters the nodes from which a message was seen."""
+        return as_type(set(nodes).difference(self.seen_from[query.name]))
+
+    def filter_sent_to(self, nodes, query, as_type=list):
+        """Utility function that filters the nodes to which a message was sent in the past."""
+        return as_type(set(nodes).difference(self.sent_to[query.name]))
+
+    def filter_query_history(self, nodes, query, as_type=list):
+        """Utility function that filters the nodes from which a message has passed as recorded in its history."""
+        nodes = {node.name: node for node in nodes}
+        for visited_node_name in query.visited_nodes:
+            if visited_node_name in nodes:
+                nodes.pop(visited_node_name)
+        return as_type(nodes.values())
+
+    def has_queries_to_send(self):
+        """Utility function that checks if node has pending messages to forward."""
+        return len(self.query_queue) > 0
 
     def send_queries(self):
-
         """
         Decides the next hops to forward the processed queued messages.
         Empties the message queue and returns the next hops.
@@ -181,7 +188,7 @@ class Node:
         Returns:
             dict[MessageQuery, List[Node]]: The next hops to forward the messages.
         """
-        
+
         assert all(
             [query.is_alive() for query in self.query_queue.values()]
         ), "queries in query queue should have been alive"
@@ -202,7 +209,6 @@ class Node:
         return to_send
 
     def receive_queries(self, queries, from_node, kill_seen=False):
-
         """
         Receives and processes messages from a node.
         Processed messages are discarded or enter the message queue for forwarding.
@@ -212,10 +218,12 @@ class Node:
             from_node (Node): The node from which messages were received.
             kill_seen (bool): Specifies if previously seen messages should be discarded.
         """
-          
+
         for query in queries:
             if query.name not in self.seen_from:
-                query.check_now(self.docs)  # performs retrieval against the node's documents
+                query.check_now(
+                    self.docs
+                )  # performs retrieval against the node's documents
             elif query.name in self.seen_from and kill_seen:
                 query.kill(self, reason="query has already been seen")
 
@@ -231,7 +239,6 @@ class Node:
 
     @abstractmethod
     def get_next_hops(self, query):
-
         """
         Determines the next hops for a message. Abstract method, implemented in subclasses.
 
@@ -241,19 +248,7 @@ class Node:
         Returns:
             List[Node]: The nodes to forward the message.
         """
-        
-        pass
 
-    @abstractmethod
-    def get_personalization(self):
-        
-        """
-        Calculates the personalization embedding.  Abstract method, implemented in subclasses.
-
-        Returns:
-            np.array: The personalization embedding.
-        """
-        
         pass
 
     def __repr__(self):

@@ -1,43 +1,38 @@
-import numpy as np
-
 from nodes.base import Node
 
 
 class FlooderNode(Node):
-
     """
     A class representing a P2P network node that forwards messages via flooding.
     Implements the Node abstract class.
 
-    FlooderNode forwards query messages the first time and discards them the next times.
+    FlooderNode forwards query messages the first time and discards them upon subsequent receptions.
     It does not use personalization embeddings.
-    
+
     Instance attributes:
         --> refer to Node.
     """
 
     def __init__(self, name):
-
         """
         Constructs a FlooderNode.
         """
-        
+
         super().__init__(name, 0)
 
     def receive_queries(self, queries, from_node):
-        
         """
         Overrides receive_queries by Node.
         Discards seen messages as reforwarding makes no sense with flooding.
 
         Arguments:
-            --> refer to Node.
+            queries (Iterable[QueryMessage]): An iterable of received messages.
+            from_node (Node): The node from which messages were received.
         """
 
         super().receive_queries(queries, from_node, kill_seen=True)
 
     def get_next_hops(self, query):
-
         """
         Implements get_next_hops by Node.
         Selects all neighbors except for the node that sent the message.
@@ -55,15 +50,3 @@ class FlooderNode(Node):
 
         next_hops = self.filter_seen_from(neighbors, query, as_type=list)
         return next_hops
-
-    def get_personalization(self):
-
-        """
-        Implements get_personalization by Node.
-        Of no importance to FlooderNode.
-
-        Returns:
-            np.array: Zeros personalization embedding.
-        """
-
-        return np.zeros(self.emb_dim)
