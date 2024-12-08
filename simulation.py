@@ -2,10 +2,10 @@ import random
 import numpy as np
 import networkx as nx
 
-import loader
+
 from datatypes import Document, MessageQuery
 from typing import List
-from utils import analytic_ppr
+from loader import load_ppr_matrix
 
 
 class Simulation:
@@ -28,7 +28,7 @@ class Simulation:
 
         self.nodes = list(graph.nodes)
         self.edges = list(graph.edges())
-        self._graph = graph  # will NOT be reshuffled
+        self._graph = graph  # retain the graph instance because its nodes will not be shuffled by the simulation
         self._graph_name = _graph_name
 
     def sample_nodes(self, k):
@@ -66,7 +66,7 @@ class Simulation:
             if monitor is not None and not monitor():
                 break
 
-    def diffuse_fast_embeddings(self, _ppr_mat=None):
+    def diffuse_fast_embeddings(self, ppr_mat=None):
         """
         Diffuse node embeddings quickly by calculating them analytically.
         The calculations require the personalized page rank diffusion matrix
@@ -78,19 +78,24 @@ class Simulation:
             _ppr_mat (np.array): The personalized page rank diffusion matrix, if passed directly.
         """
 
-        if _ppr_mat is None:
-            adj = nx.adjacency_matrix(self._graph)
-            nodes = list(self._graph.nodes)
-            alpha = nodes[0].__class__.ppr_a
-            _ppr_mat = loader.analytic_ppr(adj, alpha, True, self._graph_name)
-        nodes = self._graph.nodes
+        nodes = list(
+            self._graph.nodes
+        )  # these nodes are not shuffled by the simulation and retain the original order of the graph
+
+        ppr_mat = ppr_mat or load_ppr_matrix(
+            dataset=self._graph_name,
+            alpha=nodes[0].__class__.ppr_a,
+            symmetric=True,
+            _graph=self._graph,
+        )
+
         personalizations = np.array([node.personalization for node in nodes])
         if personalizations.ndim > 2:
             embeddings = np.zeros_like(personalizations)
             for i in range(personalizations.shape[1]):
-                embeddings[:, i, :] = _ppr_mat @ personalizations[:, i, :]
+                embeddings[:, i, :] = ppr_mat @ personalizations[:, i, :]
         else:
-            embeddings = _ppr_mat @ personalizations
+            embeddings = ppr_mat @ personalizations
 
         for node, embedding in zip(nodes, embeddings):
             node.embedding = embedding

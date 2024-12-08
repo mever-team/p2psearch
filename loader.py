@@ -38,7 +38,7 @@ def load_graph(node_init, dataset="fb"):
     return graph
 
 
-def load_ppr_matrix(dataset, alpha, symmetric=True):
+def load_ppr_matrix(dataset, alpha, symmetric=True, _graph=None):
     """
     Loads the personalized page rank diffusion matrix.
     The first time the matrix is calculated and
@@ -48,6 +48,7 @@ def load_ppr_matrix(dataset, alpha, symmetric=True):
         dataset (str): The name of the graph dataset.
         alpha (fload): The teleport probability of the personalized page rank diffusion.
         symmetric (bool): Selects the symmetric or asymmetric form of the matrix.
+        _graph (networkx.Graph): Passes the graph object directly to avoid loading from file system.
 
     Returns:
         networkx.Graph: An object representing the dataset graph.
@@ -57,7 +58,7 @@ def load_ppr_matrix(dataset, alpha, symmetric=True):
     if os.path.exists(filepath):
         return np.load(filepath)
 
-    graph = load_graph(StubNode, dataset)
+    graph = _graph or load_graph(StubNode, dataset)
     ppr_matrix = utils.analytic_ppr(nx.adjacency_matrix(graph), alpha, symmetric)
     np.save(filepath, ppr_matrix)
     return ppr_matrix
