@@ -5,7 +5,7 @@ import utils
 
 from data import network, ir
 from stubs import StubNode
-from importlib import import_module
+
 
 
 def load_graph(node_init, dataset="fb"):
@@ -52,7 +52,7 @@ def load_ppr_matrix(dataset, alpha, symmetric=True):
     Returns:
         networkx.Graph: An object representing the dataset graph.
     """
-        
+
     filepath = network.get_ppr_matrix_path(dataset, alpha, symmetric)
     if os.path.exists(filepath):
         return np.load(filepath)
@@ -64,7 +64,17 @@ def load_ppr_matrix(dataset, alpha, symmetric=True):
 
 
 def load_query_results(dataset="glove"):
-    
+    """
+    Loads the golden truth of a retrieval dataset.
+    If the dataset does not exist locally, it is downloaded and cached,
+    hence the first time may be slow.
+
+    Arguments:
+        dataset (str): The name of a retrieval dataset.
+
+    Returns:
+        dict[str, str]: A dictionary of queries and their gold documents.
+    """
     filepath = ir.get_qrels_path(dataset)
     print(filepath)
     if not os.path.exists(filepath):
@@ -78,6 +88,18 @@ def load_query_results(dataset="glove"):
 
 
 def load_embeddings(dataset="glove", type="docs"):
+    """
+    Loads the embeddings of a retrieval dataset.
+    If the dataset does not exist locally, it is downloaded and cached,
+    hence the first time may be slow.
+
+    Arguments:
+        dataset (str): The name of a retrieval dataset.
+        type (str): The type of the embeddings. Available types are "queries", "documents", "other_docs",
+            respesenting queries, relevant / gold documents, irrelevant / other documents.
+    Returns:
+        dict[str, np.array]: A dictionary of embeddings indexed by query or document names.
+    """
     filepath = ir.get_embeddings_path(dataset, type)
     if not os.path.exists(filepath):
         ir.download(dataset)
@@ -87,7 +109,39 @@ def load_embeddings(dataset="glove", type="docs"):
     return {idx: emb for idx, emb in zip(ids, embs)}
 
 
+def load_all(dataset):
+    """
+    Utility function that loads all useful data of a retrieval dataset that are needed in a simulation.
+    If the dataset does not exist locally, it is downloaded and cached, hence the first time may be slow.
+
+    Arguments:
+        dataset (str): The name of a retrieval dataset.
+
+    Returns:
+        tuple: A tuple containing the embedding dimension, the ground truth dictionary,
+            the query, document, and other document embeddings.
+    """
+    query_results = load_query_results()
+    que_embs = load_embeddings(dataset=dataset, type="queries")
+    doc_embs = load_embeddings(dataset=dataset, type="docs")
+    other_doc_embs = load_embeddings(dataset=dataset, type="other_docs")
+    dim = len(next(iter(other_doc_embs.values())))
+    return dim, query_results, que_embs, doc_embs, other_doc_embs
+
+
 def load_texts(dataset="glove", type="docs"):
+    """
+    Loads the texts of a retrieval dataset.
+    If the dataset does not exist locally, it is downloaded and cached,
+    hence the first time may be slow.
+
+    Arguments:
+        dataset (str): The name of a retrieval dataset.
+        type (str): The type of the embeddings. Available types are "queries", "documents", "other_docs",
+            respesenting queries, relevant / gold documents, irrelevant / other documents.
+    Returns:
+        dict[str, str]: A dictionary of texts indexed by the query or document name.
+    """
     filepath = ir.get_texts_path(dataset, type)
     if not os.path.exists(filepath):
         ir.download(dataset)
@@ -97,22 +151,3 @@ def load_texts(dataset="glove", type="docs"):
             idx, text = line.strip().split("\t")
             texts[idx] = text
     return texts
-
-
-def load_clusters(dataset, n_clusters):
-    filepath = ir.get_clusters_path(dataset, n_clusters)
-    if not os.path.exists(filepath):
-        store_clusters = getattr(
-            import_module("data.ir.glove.create_clusters"), "store_clusters"
-        )
-        store_clusters(n_clusters)
-    return np.load(filepath)
-
-
-def load_all(dataset):
-    query_results = load_query_results()
-    que_embs = load_embeddings(dataset=dataset, type="queries")
-    doc_embs = load_embeddings(dataset=dataset, type="docs")
-    other_doc_embs = load_embeddings(dataset=dataset, type="other_docs")
-    dim = len(next(iter(other_doc_embs.values())))
-    return dim, query_results, que_embs, doc_embs, other_doc_embs

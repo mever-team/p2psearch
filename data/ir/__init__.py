@@ -3,6 +3,7 @@ import os
 
 DATA_DIR = os.path.dirname(__file__)
 
+# utility aliases
 TYPE2FILENAME_DICT = {
     "q": "queries",
     "query": "queries",
@@ -52,7 +53,7 @@ def get_texts_path(dataset, type):
 
     Arguments:
         dataset (str): The name of the dataset.
-        type (str): The type of the text. Available types are "query", "document", "other",
+        type (str): The type of the text. Available types are "queries", "documents", "other_docs",
             respesenting queries, relevant / gold documents, irrelevant / other documents.
 
     Returns:
@@ -68,7 +69,7 @@ def get_embeddings_path(dataset, type):
 
     Arguments:
         dataset (str): The name of the dataset.
-        type (str): The type of the embeddings. Available types are "query", "document", "other",
+        type (str): The type of the text. Available types are "queries", "documents", "other_docs",
             respesenting queries, relevant / gold documents, irrelevant / other documents.
 
     Returns:
