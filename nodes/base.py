@@ -24,7 +24,6 @@ class Node:
         self.personalization = self.get_personalization()
         self.embedding = self.personalization
 
-    # TODO: dangerous
     def clear(self):
         self.neighbors.clear()
         self.docs.clear()
@@ -49,7 +48,7 @@ class Node:
                 query.kill(self, reason=f"query merged with queued clone")
             else:
                 self.query_queue[query.name] = query
-        else:  # if ttl was initially 0
+        else:
             query.kill(self, reason="ttl was initialized to 0")
 
     def filter_seen_from(self, nodes, query, as_type=list):

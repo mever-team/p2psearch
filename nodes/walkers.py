@@ -1,5 +1,6 @@
-from nodes.base import Node
 import random
+
+from nodes.base import Node
 
 
 class WalkerNode(Node):
@@ -17,5 +18,3 @@ class WalkerNode(Node):
             return random.sample(candidates, k=1)
         else:
             return random.sample(neighbors, k=1)
-
-
