@@ -31,14 +31,17 @@ class Query:
         messages (list[MessageQuery]): List of all messages related to the query. Useful to know the simulation status.
     """
 
-    def __init__(self, name, embedding, _gold_doc=None):
+    def __init__(self, name, embedding):
         """
         Creates a Query.
+
+        Arguments:
+            name (str): Identification of the query.
+            embedding (np.array): The pre-computed embedding of the document.
         """
         self.name = name
         self.embedding = embedding
         self.messages = []
-        self._gold_doc = _gold_doc
 
     def spawn(self, ttl):
         """

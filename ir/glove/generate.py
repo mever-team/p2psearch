@@ -4,6 +4,8 @@ import random as rand
 import gensim.downloader as api
 
 
+tag = "glove generation script:"
+
 def normalize(arr, axis=1):
     return arr / np.linalg.norm(arr, axis=axis, keepdims=True)
 
@@ -16,13 +18,13 @@ def dict2arrs(adict):
 n_queries = 1000
 model_name = "glove-wiki-gigaword-300"
 
-print("loading model")
+print("[dataset generation script]: downloading Glove from gensim")
 model = api.load(model_name)
 
 words = list(model.key_to_index)
 rand.shuffle(words)
 
-print("extract queries and documents")
+print("[dataset generation script]: generating queries and documents")
 que_words = set()
 doc_words = set()
 qrels = {}
@@ -44,7 +46,7 @@ other2id = {other_word: f"doc{len(doc2id)+i}" for i, other_word in enumerate(oth
 qrels = {que2id[que_word]: doc2id[doc_word] for que_word, doc_word in qrels.items()}
 
 
-print("validate")
+print("[dataset generation script]: validating dataset")
 qwords, qids = dict2arrs(que2id)
 qvecs = np.array([normalize(model[word], axis=0) for word in qwords])
 docwords, docids = dict2arrs(doc2id)
@@ -58,10 +60,10 @@ correctdocs = np.argmax(scores, axis=1)
 validation_qrels = {qids[qindex]: dids[dindex] for qindex, dindex in enumerate(correctdocs)}
 
 n_correct = np.sum([qrels[qid] == validation_qrels[qid] for qid in qids])
-print(f"--> {n_correct}/{len(qrels)} validated")
+print(f"[dataset generation script]: {n_correct}/{len(qrels)} validated")
 
 # store
-print("storing")
+print(f"[dataset generation script]: caching dataset")
 DIRPATH = os.path.dirname(__file__)
 for data, label in zip([que2id, doc2id, other2id], ["queries", "docs", "other_docs"]):
     filepath = os.path.join(DIRPATH, f"{label}.txt")
@@ -80,4 +82,4 @@ with open(filepath, "w", encoding="utf8") as f:
     for que_id, doc_id in qrels.items():
         f.write(f"{que_id}\t{doc_id}\t{1}\n")
 
-print("finished!")
+print(f"[dataset generation script]: finished!")
