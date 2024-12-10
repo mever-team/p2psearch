@@ -82,12 +82,13 @@ class Simulation:
             self._graph.nodes
         )  # these nodes are not shuffled by the simulation and retain the original order of the graph
 
-        ppr_mat = ppr_mat or load_ppr_matrix(
-            dataset=self._graph_name,
-            alpha=nodes[0].__class__.ppr_a,
-            symmetric=True,
-            _graph=self._graph,
-        )
+        if ppr_mat is None:
+            ppr_mat = load_ppr_matrix(
+                dataset=self._graph_name,
+                alpha=nodes[0].__class__.ppr_a,
+                symmetric=True,
+                _graph=self._graph,
+            )
 
         personalizations = np.array([node.personalization for node in nodes])
         if personalizations.ndim > 2:
