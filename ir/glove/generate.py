@@ -4,7 +4,6 @@ import random as rand
 import gensim.downloader as api
 
 
-tag = "glove generation script:"
 
 def normalize(arr, axis=1):
     return arr / np.linalg.norm(arr, axis=axis, keepdims=True)

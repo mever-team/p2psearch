@@ -47,7 +47,7 @@ class Dataset:
     def sample_queries(self, k):
         return [self.name2query[name] for name in rnd.sample(self._query_names, k)]
     
-    def sample_irrelevant_docs(self, k):
+    def sample_other_docs(self, k):
         return self.other_doc_embeddings.sample_many(k, return_type=Document)
 
     def sample_gold_pair(self):
