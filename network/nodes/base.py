@@ -29,13 +29,7 @@ class Node:
         embedding (np.array): Node embedding generated via diffusion of the personalization embeddings.
     """
 
-    ppr_a = 0.1
-
-    @classmethod
-    def set_ppr_a(cls, ppr_a):
-        cls.ppr_a = ppr_a
-
-    def __init__(self, name, emb_dim):
+    def __init__(self, name, emb_dim, ppr_a):
         """
         Constructs a Node object.
 
@@ -45,9 +39,10 @@ class Node:
         """
 
         self.name = name
-        self.neighbors = dict()
         self.emb_dim = emb_dim
+        self.ppr_a = ppr_a
 
+        self.neighbors = dict()
         self.docs = dict()
         self.query_queue = dict()
         self.seen_from = defaultdict(lambda: set())
@@ -127,11 +122,10 @@ class Node:
 
     @DeprecationWarning
     def update_embedding(self):
-        ppr_a = self.__class__.ppr_a
         embedding = sum([emb for emb in self.neighbors.values()])
         self.embedding = (
-            ppr_a * self.personalization
-            + (1 - ppr_a) * embedding / len(self.neighbors) ** 0.5
+            self.ppr_a * self.personalization
+            + (1 - self.ppr_a) * embedding / len(self.neighbors) ** 0.5
         )
 
     def receive_embedding(self, neighbor, neighbor_embedding):
@@ -145,18 +139,16 @@ class Node:
             neighbor (Node): A node from which an embedding advertisement is received.
             neighbor_embedding (np.array): The embedding advertised by the neighboring node.
         """
-
-        ppr_a = self.__class__.ppr_a
         N = len(self.neighbors)
         if neighbor in self.neighbors:
             self.embedding += (
-                (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1 - ppr_a)
+                (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1 - self.ppr_a)
             )
         else:
             self.embedding = (
-                (self.embedding - ppr_a * self.personalization) * N**0.5
-                + neighbor_embedding * (1 - ppr_a)
-            ) / (N + 1) ** 0.5 + ppr_a * self.personalization
+                (self.embedding - self.ppr_a * self.personalization) * N**0.5
+                + neighbor_embedding * (1 - self.ppr_a)
+            ) / (N + 1) ** 0.5 + self.ppr_a * self.personalization
         self.neighbors[neighbor] = neighbor_embedding
 
     def filter_seen_from(self, nodes, query, as_type=list):

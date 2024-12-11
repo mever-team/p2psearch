@@ -17,7 +17,7 @@ class P2PNetwork:
         edges (list[tuple]): The edgelist of the network.
     """
 
-    def __init__(self, name: str, graph: nx.Graph, ppr_a:float):
+    def __init__(self, name: str, graph: nx.Graph, node_init, ppr_a:float):
         """
         Constructs a Simulation.
 
@@ -26,14 +26,21 @@ class P2PNetwork:
             _graph_name: The name of the graph used for retrieving cached data.
         """
 
-        self.nodes = list(graph.nodes)
-        self.edges = list(graph.edges())
-        self.ppr_a = ppr_a
-        self.ppr_matrix = None    
-        
         self.name = name
 
+        self.nodes = [node_init(name) for name in graph.nodes]
+        node_dict = {name:node for name, node in zip(graph.nodes, self.nodes)}
+        self.edges = [(node_dict[u], node_dict[v]) for u, v in graph.edges]
+        self.adj = nx.adjacency_graph(graph)
+        
+        self.set_ppr_a(ppr_a)
 
+    def set_ppr_a(self, ppr_a):
+        self.ppr_a = ppr_a
+        for node in self.nodes:
+            node.ppr_a = ppr_a
+        self.ppr_mat = load_ppr_matrix(self.name, ppr_a, True, self.adj)
+            
     def sample_node(self):
         """Utility function to sample a random node from the graph."""
         return random.choice(self.nodes)
@@ -92,21 +99,13 @@ class P2PNetwork:
             self._graph.nodes
         )  # these nodes are not shuffled by the simulation and retain the original order of the graph
 
-        if ppr_mat is None:
-            ppr_mat = load_ppr_matrix(
-                dataset=self.name,
-                alpha=nodes[0].__class__.ppr_a,
-                symmetric=True,
-                _graph=self._graph,
-            )
-
         personalizations = np.array([node.personalization for node in nodes])
         if personalizations.ndim > 2:
             embeddings = np.zeros_like(personalizations)
             for i in range(personalizations.shape[1]):
-                embeddings[:, i, :] = ppr_mat @ personalizations[:, i, :]
+                embeddings[:, i, :] = self.ppr_mat @ personalizations[:, i, :]
         else:
-            embeddings = ppr_mat @ personalizations
+            embeddings = self.ppr_mat @ personalizations
 
         for node, embedding in zip(nodes, embeddings):
             node.embedding = embedding

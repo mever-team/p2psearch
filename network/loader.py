@@ -2,9 +2,10 @@ import gzip
 import requests
 import networkx as nx
 import numpy as np
+
 from pathlib import Path
 from utils import analytic_ppr
-
+from .network import P2PNetwork
 
 URLS = {
     "gnutella": "http://snap.stanford.edu/data/p2p-Gnutella08.txt.gz",
@@ -18,7 +19,8 @@ TOY_GRAPH_PARAMETERS = {
 }
 
 def load_network(dataset, node_init, ppr_a):
-    pass
+    graph = load_graph(dataset)
+    return P2PNetwork(dataset, graph, node_init, ppr_a)
 
 
 def load_graph(dataset="fb"):

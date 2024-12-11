@@ -18,7 +18,7 @@ class FlooderNode(Node):
         Constructs a FlooderNode.
         """
 
-        super().__init__(name, 0)
+        super().__init__(name, 0, 0)
 
     def receive_queries(self, queries, from_node):
         """
