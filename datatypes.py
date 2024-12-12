@@ -9,10 +9,10 @@ class Document:
     embedding: np.array
 
     def __str__(self):
-        return f"doc '{self.name}'"
+        return f"document '{self.name}'"
     
     def __repr__(self):
-        return f"{self.__class__.__name__}('{self.name}')"
+        return f"document '{self.name}'"
 
 @dataclass
 class Query:
@@ -24,7 +24,7 @@ class Query:
         return f"query '{self.name}'"
     
     def __repr__(self):
-        return f"{self.__class__.__name__}('{self.name}')"
+        return f"query '{self.name}'"
 
 class QuerySearch:
     """
@@ -110,10 +110,10 @@ class QuerySearch:
         return list(tree)
 
     def __str__(self):
-        return f"search '{self.search_id}' ({self.query}, {len(self.messages)} spawned message{'s' if len(self.messages)!=1 else ''})"
+        return f"search '{self.search_id}' ({self.query})"
     
     def __repr__(self):
-        return f"{self.__class__.__name__} ('{self.search_id}')"
+        return f"search '{self.search_id}' ({self.query})"
 
 
 class QueryMessage:
@@ -145,7 +145,7 @@ class QueryMessage:
             ttl (int): The time-to-live field of the message.
             name (string): Identification of the message. If None, creates a unique name with the help of an internal counter.
         """
-        self.name = f"qm{self.__class__.counter}"
+        self.name = f"mesg{self.__class__.counter}"
         self.__class__.counter += 1
         
         self.query = query
@@ -239,10 +239,11 @@ class QueryMessage:
 
         
     def __str__(self):
-        return f"message '{self.name}' (search '{self.search_id}', {self.query}, {self.ttl-self.hops} hops remaining)"
+        return f"message '{self.name}' (search '{self.search_id}', {self.query})"
+        # return f"message '{self.name}' (search '{self.search_id}', {self.query}, {self.ttl-self.hops} hops remaining)"
     
     def __repr__(self):
-        return f"{self.__class__.__name__} ('{self.name}', {self.ttl-self.hops} hops remaining)"
+        return f"message '{self.name}' (search '{self.search_id}', {self.query})"
 
 if __name__ == "__main__":
     dim = 5
