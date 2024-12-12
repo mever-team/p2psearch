@@ -1,4 +1,4 @@
-import random
+import numpy as np
 
 from uuid import uuid4
 from ir import load_dataset
@@ -6,21 +6,20 @@ from network import load_network
 from network.nodes import HardSumEmbeddingNode
 from datatypes import *
 from argparse import ArgumentParser
-from tqdm import tqdm
 from pathlib import Path
-from collections import defaultdict
 from matplotlib import pyplot as plt
-
-import numpy as np
-import random
-import networkx as nx
+from tqdm import tqdm
 
 
 def distance(emb_mat_1, emb_mat_2):
     return np.linalg.norm(emb_mat_1 - emb_mat_2, axis=-1, ord=1).max(axis=-1)
 
 
-class EmbeddingMonitor:
+class DiffusionMonitorWithEarlyStop:
+    """
+    A utility class that stores the embeddings in each diffusion round.
+    It also provides an early stop criterion when the embeddings have converged.
+    """
 
     def __init__(self, nodes, tolerance):
         self.nodes = nodes
@@ -35,15 +34,25 @@ class EmbeddingMonitor:
         self.embs.append(np.array([node.embedding for node in self.nodes]))
         emb_diff = distance(self.embs[-1], self.embs[-2])
         print(
-            f"[Asynchronous diffusion monitor]: embedding variation in an epoch {emb_diff}"
+            f"[Diffusion monitor]: embedding variation in a round {emb_diff}"
         )
         return emb_diff > self.tolerance
 
 
 class Simulation:
 
+    """
+    A simulation that validates the convergence of the asynchronous personalized page rank
+    diffusion embeddings to their exact values, computed analytically.
+
+    In each iteration, simulation scatters a given number of documents and diffuses the
+    embeddings asynchronously until convergence. The convergence is checked via a distance
+    metric that captures the deviations from the exact values, which are tracked as output.
+    The results from all iterations are summarized in a text file and plotted.
+    """
+
     def __init__(self, dataset_name, graph_name, ppr_a, n_docs, max_epochs, tolerance):
-        self.sim_id = uuid4()
+        self.sim_id = str(uuid4())
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
             dataset=graph_name,
@@ -61,10 +70,10 @@ class Simulation:
             "ppr_a": ppr_a,
             "n_docs": n_docs,
             "max_epochs": max_epochs,
-            "tolerance": 10**-10,
+            "tolerance": tolerance,
         }
 
-    def run(self):
+    def iterate(self):
 
         self.network.clear()
 
@@ -72,7 +81,7 @@ class Simulation:
 
         self.network.scatter_docs(docs)
 
-        monitor = EmbeddingMonitor(self.network.nodes, self.tolerance)
+        monitor = DiffusionMonitorWithEarlyStop(self.network.nodes, self.tolerance)
         self.network.diffuse_embeddings(epochs=self.max_epochs, monitor=monitor)
         async_embeddings = monitor.embeddings
 
@@ -80,11 +89,17 @@ class Simulation:
         exact_embeddings = self.network.embeddings
         return {"emb_diffs": distance(async_embeddings, exact_embeddings)}
 
+    def run(self, n_iters):
+        all_emb_diffs = []
+        for _ in tqdm(range(n_iters)):
+            all_emb_diffs.append(self.iterate()["emb_diffs"])
+        return {"all_emb_diffs": all_emb_diffs}
+
     def save(self, results):
-        runs_path = Path(__file__).parent / "runs"
-        runs_path.mkdir(exist_ok=True)
-        
-        with open(runs_path / f"{self.sim_id}.txt", "w") as f:
+        run_path = Path(__file__).parent / "runs" / str(self.sim_id)
+        run_path.mkdir(exist_ok=True, parents=True)
+
+        with open(run_path / f"results.txt", "w") as f:
 
             f.write("PARAMETERS\n")
             f.write("----------\n")
@@ -95,11 +110,22 @@ class Simulation:
 
             f.write("RESULTS\n")
             f.write("-------\n")
-            for res_name, res_value in results.items():
-                f.write(f"{res_name}: {res_value}\n")
+            f.write("embedding deviation from analytic values\n")
+            for i, emb_diffs in enumerate(results["all_emb_diffs"]):
+                f.write(f"iter {i}: {emb_diffs[0]} -> {emb_diffs[-1]} in {len(emb_diffs)} epochs\n")
 
-    def __call__(self, save=True):
-        results = self.run()
+        fig, ax = plt.subplots(figsize=(6, 5))
+        for diffs in results["all_emb_diffs"]:
+            ax.plot(diffs, "-", ms=7, lw=1.0)
+            ax.grid()
+            ax.set_xlabel("Epochs", family="serif", size=16)
+            ax.set_ylabel("Embeddings convergence metric", family="serif", size=16)
+            ax.legend(prop={'family':"serif", 'size': 13})
+            fig.savefig(run_path / "plot.png")
+
+
+    def __call__(self, n_iters, save=True):
+        results = self.run(n_iters)
         if save:
             self.save(results)
         return results
@@ -109,13 +135,13 @@ class Simulation:
 
 
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, default=4)
-parser.add_argument("-nd", "--n-docs", type=int, default=10)
-parser.add_argument("-g", "--graph-name", type=str, default="fb")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove")
-parser.add_argument("-a", "--ppr-a", type=float, default=0.5)
-parser.add_argument("-me", "--max-epochs", type=int, default=100)
-parser.add_argument("-t", "--tolerance", type=int, default=10**-10)
+parser.add_argument("-ni", "--n-iters", type=int, help="Number of times to check convergence in the same network.")
+parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents to scatter in the network.")
+parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
+parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
+parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
+parser.add_argument("-me", "--max-epochs", type=int, default=500, help="Maximum number of epochs to wait for convergence.")
+parser.add_argument("-t", "--tolerance", type=float, default=10**-10, help="Tolerance for convergence.")
 
 args = parser.parse_args()
 
@@ -128,5 +154,5 @@ sim = Simulation(
     tolerance=args.tolerance,
 )
 
-results = sim()
+results = sim(n_iters=args.n_iters, save=True)
 print(results)

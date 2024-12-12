@@ -82,7 +82,7 @@ class P2PNetwork:
             monitor: Utility object to stop early due to convergence.
         """
 
-        for time in range(epochs):
+        for _ in range(epochs):
             random.shuffle(self.edges)
             for u, v in self.edges:
                 if random.random() < 0.5:
@@ -116,8 +116,8 @@ class P2PNetwork:
             node.embedding = embedding
 
         for u, v in self.edges:
-            u.neighbors[v] = v.embedding
-            v.neighbors[u] = u.embedding
+            u.neighbors_index[v] = v.embedding
+            v.neighbors_index[u] = u.embedding
 
     def forward_queries(self, epochs, monitor):
         """
@@ -197,5 +197,5 @@ class P2PNetwork:
             yield list(next_nodes)
             current_nodes = next_nodes
             visited_nodes.update(next_nodes)
-            next_nodes = set.union(*[set(node.neighbors) for node in current_nodes]).difference(visited_nodes)
+            next_nodes = set.union(*[set(node.neighbors_index) for node in current_nodes]).difference(visited_nodes)
 

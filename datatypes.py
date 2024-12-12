@@ -3,7 +3,6 @@ import numpy as np
 from uuid import uuid4
 from typing import Sequence
 from dataclasses import dataclass
-from network import Node
 
 @dataclass
 class Document:
@@ -258,7 +257,7 @@ class QueryMessage:
         self.register_message_callback(copy)
         return copy
 
-    def send(self, from_node: Node, to_node: Node):  # use node names?
+    def send(self, from_node, to_node):  # use node names?
         """
         Updates the fields of the message when it is transmitted in a link.
         The actual transmission is performed by the network object.
