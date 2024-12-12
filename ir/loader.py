@@ -74,7 +74,7 @@ def read_embeddings_file(path):
     return arrays["ids"], arrays["embs"]
 
 
-def load(dataset: str):
+def load_dataset(dataset: str):
 
     dset_path = Path(__file__).parent / str(dataset)
     if not dset_path.exists():
@@ -105,3 +105,27 @@ def load(dataset: str):
         other_doc_embeddings=other_doc_embeddings,
         qrels=qrels,
     )
+
+
+# def load_texts(dataset="glove", type="docs"):
+#     """
+#     Loads the texts of a retrieval dataset.
+#     If the dataset does not exist locally, it is downloaded and cached,
+#     hence the first time may be slow.
+
+#     Arguments:
+#         dataset (str): The name of a retrieval dataset.
+#         type (str): The type of the embeddings. Available types are "queries", "documents", "other_docs",
+#             respesenting queries, relevant / gold documents, irrelevant / other documents.
+#     Returns:
+#         dict[str, str]: A dictionary of texts indexed by the query or document name.
+#     """
+#     filepath = ir.get_texts_path(dataset, type)
+#     if not os.path.exists(filepath):
+#         ir.download(dataset)
+#     with open(filepath, "r", encoding="utf8") as f:
+#         texts = dict()
+#         for line in f:
+#             idx, text = line.strip().split("\t")
+#             texts[idx] = text
+#     return texts
