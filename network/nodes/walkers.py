@@ -17,7 +17,7 @@ class WalkerNode(Node):
         --> refer to Node.
     """
 
-    def receive_queries(self, queries, from_node):
+    def receive_messages(self, queries, from_node):
         """
         Overrides receive_queries by Node.
         Does not discard seen messages as reforwarding makes sense with random walks.
@@ -27,7 +27,7 @@ class WalkerNode(Node):
             from_node (Node): The node from which messages were received.
         """
 
-        super().receive_queries(queries, from_node, kill_seen=False)
+        super().receive_messages(queries, from_node, kill_seen=False)
 
     def get_next_hops(self, query):
         """
@@ -42,7 +42,7 @@ class WalkerNode(Node):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
@@ -85,7 +85,7 @@ class HardSumEmbeddingNode(WalkerNode):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
@@ -97,7 +97,7 @@ class HardSumEmbeddingNode(WalkerNode):
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
+        neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
                 np.sum(query.embedding * neighbor_embedding)
@@ -143,7 +143,7 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
@@ -155,7 +155,7 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
+        neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
                 np.linalg.norm(query.embedding - neighbor_embedding)
@@ -196,7 +196,7 @@ class HardSumL2EmbeddingNode(WalkerNode):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
@@ -208,7 +208,7 @@ class HardSumL2EmbeddingNode(WalkerNode):
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
+        neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
                 -np.linalg.norm(query.embedding - neighbor_embedding)
@@ -246,7 +246,7 @@ class SoftSumEmbeddingNode(WalkerNode):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
@@ -258,7 +258,7 @@ class SoftSumEmbeddingNode(WalkerNode):
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        neighbor_embeddings = [self.neighbors[neighbor] for neighbor in neighbors]
+        neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
                 np.sum(query.embedding * neighbor_embedding)

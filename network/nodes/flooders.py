@@ -13,7 +13,7 @@ class FlooderNode(Node):
         --> refer to Node.
     """
 
-    def receive_queries(self, queries, from_node):
+    def receive_messages(self, queries, from_node):
         """
         Overrides receive_queries by Node.
         Discards seen messages as reforwarding makes no sense with flooding.
@@ -23,7 +23,7 @@ class FlooderNode(Node):
             from_node (Node): The node from which messages were received.
         """
 
-        super().receive_queries(queries, from_node, kill_seen=True)
+        super().receive_messages(queries, from_node, kill_seen=True)
 
     def get_next_hops(self, query):
         """
@@ -37,7 +37,7 @@ class FlooderNode(Node):
             List[Node]: The nodes to forward the message.
         """
 
-        neighbors = list(self.neighbors)
+        neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
 
