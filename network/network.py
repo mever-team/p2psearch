@@ -185,3 +185,14 @@ class P2PNetwork:
         """
         for node in self.nodes:
             node.clear()
+
+    def stream_hops(self, start_node, max_hop=float('inf')):
+        hop = 0
+        visited_nodes, current_nodes, next_nodes = set(), set(), {start_node}
+        while len(next_nodes) > 0 and hop < max_hop+1:
+            hop += 1
+            yield list(next_nodes)
+            current_nodes = next_nodes
+            visited_nodes.update(next_nodes)
+            next_nodes = set.union(*[set(node.neighbors) for node in current_nodes]).difference(visited_nodes)
+
