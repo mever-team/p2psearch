@@ -1,1 +1,1 @@
-from .loader import load_network
+from .network import load_network

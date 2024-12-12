@@ -5,7 +5,7 @@ import numpy as np
 
 from pathlib import Path
 from utils import analytic_ppr
-from .network import P2PNetwork
+
 
 URLS = {
     "gnutella": "http://snap.stanford.edu/data/p2p-Gnutella08.txt.gz",
@@ -17,10 +17,6 @@ TOY_GRAPH_PARAMETERS = {
     "toy_erdos": {"n": 50, "p": 0.2},
     "toy_watts_strogatz": {"n": 50, "k": 3, "p": 0.2},
 }
-
-def load_network(dataset, init_node, ppr_a):
-    graph = load_graph(dataset)
-    return P2PNetwork(dataset, graph, init_node, ppr_a)
 
 
 def load_graph(dataset="fb"):
@@ -47,7 +43,7 @@ def load_graph(dataset="fb"):
 
 
 
-def load_ppr_matrix(dataset, alpha, symmetric=True, _adjacency_matrix=None):
+def load_ppr_matrix(dataset, ppr_a, symmetric=True, _adjacency_matrix=None):
     """
     Loads the personalized page rank diffusion matrix.
     The first time the matrix is calculated and
@@ -65,7 +61,7 @@ def load_ppr_matrix(dataset, alpha, symmetric=True, _adjacency_matrix=None):
     dset_path = Path(__file__).parent / ".cache" / dataset
     dset_path.mkdir(exist_ok=True)
     pprmat_path = (
-        dset_path / f"pprmat_alpha{alpha}_{'symm' if symmetric else 'asymm'}.npy"
+        dset_path / f"pprmat_alpha{ppr_a}_{'symm' if symmetric else 'asymm'}.npy"
     )
 
     if pprmat_path.exists():
@@ -78,7 +74,7 @@ def load_ppr_matrix(dataset, alpha, symmetric=True, _adjacency_matrix=None):
         if _adjacency_matrix is None
         else _adjacency_matrix
     )
-    ppr_matrix = analytic_ppr(adj, alpha, symmetric)
+    ppr_matrix = analytic_ppr(adj, ppr_a, symmetric)
 
     np.save(pprmat_path, ppr_matrix)
     return ppr_matrix

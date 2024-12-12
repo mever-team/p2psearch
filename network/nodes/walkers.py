@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-from nodes.base import Node
+from .base import Node
 
 
 class WalkerNode(Node):

@@ -1,4 +1,4 @@
-from nodes.base import Node
+from .base import Node
 
 
 class FlooderNode(Node):

@@ -18,7 +18,7 @@ class Document:
 class Query:
     name: str
     embedding: np.array
-    gold_doc: Document
+    # gold_doc: Document
 
     def __str__(self):
         return f"query '{self.name}'"
@@ -234,6 +234,10 @@ class QueryMessage:
                 self.candidate_doc = doc
                 self.hops_to_reach_doc = self.hops
 
+    def kill(self, at_nope, reason):
+        pass
+
+        
     def __str__(self):
         return f"message '{self.name}' (search '{self.search_id}', {self.query}, {self.ttl-self.hops} hops remaining)"
     
