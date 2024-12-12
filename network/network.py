@@ -5,7 +5,7 @@ import networkx as nx
 from datatypes import Document, QueryMessage
 from typing import List
 from .loader import load_ppr_matrix, load_graph
-
+from .nodes.base import Node
 
 def load_network(dataset, init_node, ppr_a):
     graph = load_graph(dataset)
@@ -21,7 +21,7 @@ class P2PNetwork:
         edges (list[tuple]): The edgelist of the network.
     """
 
-    def __init__(self, name: str, graph: nx.Graph, init_node, ppr_a: float):
+    def __init__(self, name: str, graph: nx.Graph, init_node, ppr_a: float=None):
         """
         Constructs a Simulation.
 
@@ -37,7 +37,8 @@ class P2PNetwork:
         self.edges = [(node_dict[u], node_dict[v]) for u, v in graph.edges]
         self.adj = nx.adjacency_matrix(graph)
 
-        self.set_ppr_a(ppr_a)
+        if ppr_a is not None: # only for simulations that change ppr_a
+            self.set_ppr_a(ppr_a)
 
     def set_ppr_a(self, ppr_a):
         self.ppr_a = ppr_a
@@ -46,7 +47,7 @@ class P2PNetwork:
             dataset=self.name, ppr_a=ppr_a, symmetric=True, _adjacency_matrix=self.adj
         )
 
-    def sample_node(self):
+    def sample_node(self) -> Node:
         """Utility function to sample a random node from the graph."""
         return random.choice(self.nodes)
 

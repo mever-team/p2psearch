@@ -1,4 +1,5 @@
 import random 
+import itertools
 
 from uuid import uuid4
 from ir import load_dataset
@@ -16,24 +17,25 @@ from matplotlib import pyplot as plt
 class Simulation:
 
     def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_searches_per_iter, ttl
+        self, dataset_name, graph_name, all_ppr_a, n_docs, n_searches_per_iter, ttl
     ):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
             dataset=graph_name,
             init_node=lambda name: HardSumEmbeddingNode(name, self.dset.dim),
-            ppr_a=ppr_a,
+            ppr_a=None,
         )
 
         self.n_docs = n_docs
         self.n_searches_per_iter = n_searches_per_iter
         self.ttl = ttl
+        self.all_ppr_a = all_ppr_a
 
         self.params = {
             "dataset_name": dataset_name,
             "graph_name": graph_name,
-            "ppr_a": ppr_a,
+            "all_ppr_a": all_ppr_a,
             "n_docs": n_docs,
             "n_searches_per_iter": n_searches_per_iter,
             "ttl": ttl,
@@ -73,16 +75,29 @@ class Simulation:
     
         return {"hop2success": hop2success}
 
-    def run(self, n_iters):
-        
+    def run_for_single_alpha(self, n_iters, ppr_a):
+     
+        self.network.set_ppr_a(ppr_a=ppr_a)
+
         hop2success = defaultdict(lambda: [])
         for _ in tqdm(range(n_iters)):
             results = self.iterate()
             for hop, success in results["hop2success"].items():
                 hop2success[hop].append(success)
+        
         return {
             "hop2success": hop2success
         }
+
+    def run(self, n_iters):
+
+        alpha2results = {}
+
+        for ppr_a in self.all_ppr_a:
+            results = self.run_for_single_alpha(n_iters, ppr_a=ppr_a)
+            alpha2results[ppr_a] = self.postprocess(results)
+        
+        return alpha2results
 
     def postprocess(self, results):
         hops = sorted(list(results["hop2success"]))
@@ -92,8 +107,7 @@ class Simulation:
             "hit_rates": hit_rates,
         }
 
-
-    def save(self, results):
+    def save(self, alpha2results):
         run_path = Path(__file__).parent / "runs" / str(self.sim_id)
         run_path.mkdir(exist_ok=True)
         
@@ -108,12 +122,17 @@ class Simulation:
 
             f.write("RESULTS\n")
             f.write("-------\n")
-            for res_name, res_value in results.items():
-                f.write(f"{res_name}: {res_value}\n")
+            for ppr_a, results in alpha2results.items():
+                f.write(f"ppr_a: {ppr_a}\n")
+                for res_name, res_value in results.items():
+                    f.write(f"{res_name}: {res_value}\n")
 
-        hops, hit_rates = np.array(results["hops"]), np.array(results["hit_rates"])
+        marker = itertools.cycle(('+', '*', 'o', '.')) 
+        
         fig, ax = plt.subplots(figsize=(6, 5))
-        ax.plot(hops, hit_rates, "k-", ms=7, lw=1.0)
+        for alpha, results in alpha2results.items():
+            hops, hit_rates = results["hops"], results["hit_rates"]
+            ax.plot(hops, hit_rates, "k-"+next(marker), label=rf"$\alpha = {alpha}$", ms=7, lw=1.0)
         ax.grid()
         ax.set_xlabel("TTL (hops)", family="serif", size=16)
         ax.set_ylabel("Accuracy (%)", family="serif", size=16)
@@ -121,11 +140,11 @@ class Simulation:
         fig.savefig(run_path / "plot.png")
 
     def __call__(self, n_iters, save=True):
-        results = self.run(n_iters=n_iters)
-        results = self.postprocess(results)
+        
+        alpha2results = self.run(n_iters=n_iters)
         if save:
-            self.save(results)
-        return results
+            self.save(alpha2results)
+        return alpha2results
 
     def print(self, text):
         print(f"[simulation {self.sim_id}]: {text}")
@@ -139,15 +158,18 @@ parser.add_argument("-nd", "--n-docs", type=int, default=10)
 parser.add_argument("-nm", "--n-messages", type=int, default=10)
 parser.add_argument("-g", "--graph-name", type=str, default="fb")
 parser.add_argument("-d", "--dataset-name", type=str, default="glove")
-parser.add_argument("-a", "--ppr-a", type=float, default=0.5)
+parser.add_argument("-a", "--all-ppr-a", type=list[float], default=[0.1, 0.5, 0.9])
 parser.add_argument("-t", "--ttl", type=int, default=50)
 
 args = parser.parse_args()
 
+alpha2results = {}
+
+
 sim = Simulation(
     dataset_name=args.dataset_name,
     graph_name=args.graph_name,
-    ppr_a=args.ppr_a,
+    all_ppr_a=args.all_ppr_a,
     n_docs=args.n_docs,
     n_searches_per_iter=args.n_messages,
     ttl=args.ttl,
