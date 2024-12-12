@@ -1,7 +1,7 @@
 import numpy as np
 
 from abc import abstractmethod
-from datatypes import Document, MessageQuery
+from datatypes import Document, QueryMessage
 from collections import defaultdict
 
 
@@ -29,7 +29,7 @@ class Node:
         embedding (np.array): Node embedding generated via diffusion of the personalization embeddings.
     """
 
-    def __init__(self, name, emb_dim, ppr_a):
+    def __init__(self, name, emb_dim):
         """
         Constructs a Node object.
 
@@ -40,8 +40,6 @@ class Node:
 
         self.name = name
         self.emb_dim = emb_dim
-        self.ppr_a = ppr_a
-
         self.neighbors = dict()
         self.docs = dict()
         self.query_queue = dict()
@@ -77,7 +75,7 @@ class Node:
         self.personalization = self.get_personalization()
         self.embedding = self.personalization
 
-    def add_query(self, query: MessageQuery):
+    def add_query(self, query: QueryMessage):
         """
         Adds a query message to the node at the start of a simulation.
 
@@ -86,7 +84,7 @@ class Node:
         """
 
         assert query.ttl >= 0, f"{query}, ttl should be >= 0"
-        query.check_now(self.docs)
+        query.retrieve(list(self.docs.values()))
         if query.is_alive():
             if query.name in self.query_queue:
                 self.query_queue[query.name].receive(query)
@@ -121,14 +119,14 @@ class Node:
         return self.embedding / max(1, len(self.neighbors)) ** 0.5
 
     @DeprecationWarning
-    def update_embedding(self):
+    def update_embedding(self, ppr_a):
         embedding = sum([emb for emb in self.neighbors.values()])
         self.embedding = (
-            self.ppr_a * self.personalization
-            + (1 - self.ppr_a) * embedding / len(self.neighbors) ** 0.5
+            ppr_a * self.personalization
+            + (1 - ppr_a) * embedding / len(self.neighbors) ** 0.5
         )
 
-    def receive_embedding(self, neighbor, neighbor_embedding):
+    def receive_embedding(self, neighbor, neighbor_embedding, ppr_a):
         """
         Receives an update from a neighboring node.
         Shares the burden of computing the personalized page rank diffusion with the sending node.
@@ -142,13 +140,13 @@ class Node:
         N = len(self.neighbors)
         if neighbor in self.neighbors:
             self.embedding += (
-                (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1 - self.ppr_a)
+                (neighbor_embedding - self.neighbors[neighbor]) / N**0.5 * (1 - ppr_a)
             )
         else:
             self.embedding = (
-                (self.embedding - self.ppr_a * self.personalization) * N**0.5
-                + neighbor_embedding * (1 - self.ppr_a)
-            ) / (N + 1) ** 0.5 + self.ppr_a * self.personalization
+                (self.embedding - ppr_a * self.personalization) * N**0.5
+                + neighbor_embedding * (1 - ppr_a)
+            ) / (N + 1) ** 0.5 + ppr_a * self.personalization
         self.neighbors[neighbor] = neighbor_embedding
 
     def filter_seen_from(self, nodes, query, as_type=list):
@@ -213,8 +211,8 @@ class Node:
 
         for query in queries:
             if query.name not in self.seen_from:
-                query.check_now(
-                    self.docs
+                query.retrieve(
+                    list(self.docs.values())
                 )  # performs retrieval against the node's documents
             elif query.name in self.seen_from and kill_seen:
                 query.kill(self, reason="query has already been seen")

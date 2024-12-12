@@ -1,27 +1,32 @@
 import numpy as np
+from dataclasses import dataclass
+from uuid import uuid4
 
 
+@dataclass
 class Document:
-    """
-    A class representing a document.
+    name: str
+    embedding: np.array
 
-    Attributes:
-        name (str): Identification of the document. Should be unique.
-        embedding (np.array): The pre-computed embedding of the document.
-    """
-
-    def __init__(self, name, embedding):
-        """
-        Constructs a Document.
-        """
-        self.name = name
-        self.embedding = embedding
-
+    def __str__(self):
+        return f"doc '{self.name}'"
+    
     def __repr__(self):
-        return f"{self.__class__.__name__} ('{self.name}')"
+        return f"{self.__class__.__name__}('{self.name}')"
 
-
+@dataclass
 class Query:
+    name: str
+    embedding: np.array
+    gold_doc: Document
+
+    def __str__(self):
+        return f"query '{self.name}'"
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}('{self.name}')"
+
+class QuerySearch:
     """
     A class representing a Query.
 
@@ -31,7 +36,7 @@ class Query:
         messages (list[MessageQuery]): List of all messages related to the query. Useful to know the simulation status.
     """
 
-    def __init__(self, name, embedding):
+    def __init__(self, query: Query):
         """
         Creates a Query.
 
@@ -39,28 +44,26 @@ class Query:
             name (str): Identification of the query.
             embedding (np.array): The pre-computed embedding of the document.
         """
-        self.name = name
-        self.embedding = embedding
+        self.search_id = uuid4()
+
+        self.query = query
         self.messages = []
 
-    def spawn(self, ttl):
+    def spawn_message(self, ttl):
         """
         Spawns a message object carrying a query.
 
         Arguments:
             ttl (int): Time to live field.
         """
-        message = MessageQuery(self, ttl)
+        message = QueryMessage(query = self.query,
+                               ttl=ttl,
+                               search_id=self.search_id,
+                               register_message_callback=self.register)
+        self.register(message)
         return message
-
+    
     def register(self, message):
-        # TODO: does it need to be a separate function? why not through spawn??
-        """
-        Registers a message to the query.
-
-        Arguments:
-            message (MessageQuery): A message related to the query.
-        """
         self.messages.append(message)
 
     @property
@@ -106,11 +109,14 @@ class Query:
             tree.update(set(message.visited_edges))
         return list(tree)
 
+    def __str__(self):
+        return f"search '{self.search_id}' ({self.query}, {len(self.messages)} spawned message{'s' if len(self.messages)!=1 else ''})"
+    
     def __repr__(self):
-        return f"{self.__class__.__name__} ('{self.name}')"
+        return f"{self.__class__.__name__} ('{self.search_id}')"
 
 
-class MessageQuery:
+class QueryMessage:
     """
     A class representing a message carrying a query.
 
@@ -130,7 +136,7 @@ class MessageQuery:
 
     counter = 0
 
-    def __init__(self, query, ttl, name=None):
+    def __init__(self, query, ttl, search_id, register_message_callback):
         """
         Constructs a QueryMessage.
 
@@ -139,24 +145,27 @@ class MessageQuery:
             ttl (int): The time-to-live field of the message.
             name (string): Identification of the message. If None, creates a unique name with the help of an internal counter.
         """
-        if name is None:
-            name = f"qm{self.__class__.counter}({query.name})"
-            self.__class__.counter += 1
-        self.name = name
-        # refers to all messages cloned from the same initial message query
-        # messages added to different nodes will have diffrent message_names EVEN if they point to the same query obj
-
+        self.name = f"qm{self.__class__.counter}"
+        self.__class__.counter += 1
+        
         self.query = query
         self.ttl = ttl
+        self.search_id = search_id
+        self.register_message_callback = register_message_callback
+        
         self.hops = 0
         self.hops_to_reach_doc = 0
         self.candidate_doc = None
         self.candidate_doc_similarity = -float("inf")
         self.visited_edges = []
 
-        # notify original query so that self can be monitored
-        self.query.register(self)
-
+    @property
+    def embedding(self):
+        """
+        The embedding of the query carried by the message.
+        """
+        return self.query.embedding
+    
     @property
     def visited_nodes(self):
         """
@@ -168,41 +177,20 @@ class MessageQuery:
         nodes.append(self.visited_edges[-1][1])
         return nodes
 
-    @property
-    def query_name(self):
-        # TODO: is it used anywhere???
-        """
-        The name of the query, distinct from the name identifying the message.
-        """
-        return self.query.name
-
-    @property
-    def embedding(self):
-        """
-        The embedding of the query carried by the message.
-        """
-        return self.query.embedding
-
     def is_alive(self):
         """
         Checks if the time-to-live field has not expired.
         """
         return self.hops < self.ttl
 
-    def kill(self, at_node, reason=""):
-        # TODO: is it used anywhere???
-        pass
-        # print(f"Query {self.query.name} died at node {at_node.name} because {reason}")
-        # TODO notify query
-
     def clone(self):
-        # TODO is it used anywhere??? or message are only created via spawn?
-        # does not register the message
-        copy = MessageQuery(self.query, self.ttl, name=self.name)
+        copy = QueryMessage(self.query, self.ttl, self.search_id, self.register_message_callback)
         copy.hops = self.hops
         copy.hops_to_reach_doc = self.hops_to_reach_doc
         copy.candidate_doc = self.candidate_doc
         copy.candidate_doc_similarity = self.candidate_doc_similarity
+        copy.visited_edges = [edge for edge in self.visited_edges] # should it start anew?
+        self.register_message_callback(copy)
         return copy
 
     def send(self, from_node, to_node):
@@ -229,7 +217,7 @@ class MessageQuery:
             self.candidate_doc_similarity = other.candidate_doc_similarity
         self.hops = max(self.hops, other.hops)  # min could be another option
 
-    def check_now(self, docs):
+    def retrieve(self, docs):
         """
         Executes the message query against a collection of documents. 
         Triggers updating the candidate document.This function is delegated to the MessageQuery
@@ -239,12 +227,49 @@ class MessageQuery:
             docs (Iterable[Document]): A collection of documents.
         """
         for doc in docs:
-            score = np.sum(docs[doc].embedding * self.embedding)
+            score = np.sum(doc.embedding * self.embedding)
             # score = -np.linalg.norm(docs[doc].embedding - self.embedding)
             if score > self.candidate_doc_similarity:
                 self.candidate_doc_similarity = score
                 self.candidate_doc = doc
                 self.hops_to_reach_doc = self.hops
 
+    def __str__(self):
+        return f"message '{self.name}' (search '{self.search_id}', {self.query}, {self.ttl-self.hops} hops remaining)"
+    
     def __repr__(self):
         return f"{self.__class__.__name__} ('{self.name}', {self.ttl-self.hops} hops remaining)"
+
+if __name__ == "__main__":
+    dim = 5
+    ttl = 4
+    doc1 = Document("doc1", np.random.random(dim))
+    doc2 = Document("doc2", np.random.random(dim))
+    doc3 = Document("doc3", np.random.random(dim))
+    docs = [doc1, doc2, doc3]
+
+    query = Query("que0", np.random.random(dim), None)
+
+    node1 = Document("node1", None)
+    node2 = Document("node2", None)
+    node3 = Document("node3", None)
+    node4 = Document("node4", None)
+
+    search = QuerySearch(query)
+    message = search.spawn_message(ttl)
+    print(search)
+
+    message.send(from_node=node1, to_node=node3)
+    message.send(from_node=node3, to_node=node2)
+    message.send(from_node=node2, to_node=node1)
+    message.send(from_node=node1, to_node=node2)
+    message.send(from_node=node2, to_node=node3)
+    message.send(from_node=node3, to_node=node2)
+ 
+    print(message.visited_nodes)
+    
+    print(message.visited_edges)
+    print(search.visited_tree)
+
+
+

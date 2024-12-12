@@ -71,20 +71,6 @@ class HardSumEmbeddingNode(WalkerNode):
         --> for other attributes, refer to Node.
     """
 
-    def __init__(self, name, dim, remove_successful_queries=False):
-        """
-        Constructs a HardSumEmbeddingNode.
-
-        Arguments:
-            remove_successful_queries (bool): Discards queries that have found the golden document.
-                In practice, the node does not know which is the golden document,
-                this is meant as a computational shortcut for the hit count and the hop count length,
-                which are not affected by the next hops.
-        --> for other attributes, refer to Node.
-        """
-
-        self.remove_successful_queries = remove_successful_queries
-        super(HardSumEmbeddingNode, self).__init__(name, dim)
 
     def get_next_hops(self, query):
         """
@@ -101,12 +87,6 @@ class HardSumEmbeddingNode(WalkerNode):
 
         neighbors = list(self.neighbors)
         if len(neighbors) == 0:
-            return []
-
-        if (
-            self.remove_successful_queries
-            and query.candidate_doc == query.query._gold_doc
-        ):
             return []
 
         filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)

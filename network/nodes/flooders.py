@@ -13,13 +13,6 @@ class FlooderNode(Node):
         --> refer to Node.
     """
 
-    def __init__(self, name):
-        """
-        Constructs a FlooderNode.
-        """
-
-        super().__init__(name, 0, 0)
-
     def receive_queries(self, queries, from_node):
         """
         Overrides receive_queries by Node.

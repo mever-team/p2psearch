@@ -2,8 +2,7 @@ import random
 import numpy as np
 import networkx as nx
 
-from pathlib import Path
-from datatypes import Document, MessageQuery
+from datatypes import Document, QueryMessage
 from typing import List
 from loader import load_ppr_matrix
 
@@ -17,7 +16,7 @@ class P2PNetwork:
         edges (list[tuple]): The edgelist of the network.
     """
 
-    def __init__(self, name: str, graph: nx.Graph, node_init, ppr_a:float):
+    def __init__(self, name: str, graph: nx.Graph, init_node, ppr_a:float):
         """
         Constructs a Simulation.
 
@@ -28,7 +27,7 @@ class P2PNetwork:
 
         self.name = name
 
-        self.nodes = [node_init(name) for name in graph.nodes]
+        self.nodes = [init_node(name) for name in graph.nodes]
         node_dict = {name:node for name, node in zip(graph.nodes, self.nodes)}
         self.edges = [(node_dict[u], node_dict[v]) for u, v in graph.edges]
         self.adj = nx.adjacency_graph(graph)
@@ -37,8 +36,6 @@ class P2PNetwork:
 
     def set_ppr_a(self, ppr_a):
         self.ppr_a = ppr_a
-        for node in self.nodes:
-            node.ppr_a = ppr_a
         self.ppr_mat = load_ppr_matrix(self.name, ppr_a, True, self.adj)
             
     def sample_node(self):
@@ -57,7 +54,7 @@ class P2PNetwork:
         for node, doc in zip(random.choices(self.nodes, k=len(documents)), documents):
             node.add_doc(doc)
 
-    def scatter_queries(self, queries: List[MessageQuery]):
+    def scatter_queries(self, queries: List[QueryMessage]):
         """Stores queries to nodes sampled randonly from the graph (with replacement)."""
         for node, query in zip(random.choices(self.nodes, k=len(queries)), queries):
             node.add_query(query)
@@ -77,13 +74,13 @@ class P2PNetwork:
             random.shuffle(self.edges)
             for u, v in self.edges:
                 if random.random() < 0.5:
-                    v.receive_embedding(u, u.send_embedding())
-                    u.receive_embedding(v, v.send_embedding())
+                    v.receive_embedding(u, u.send_embedding(), self.ppr_a)
+                    u.receive_embedding(v, v.send_embedding(), self.ppr_a)
 
             if monitor is not None and not monitor():
                 break
 
-    def diffuse_fast_embeddings(self, ppr_mat=None):
+    def diffuse_fast_embeddings(self):
         """
         Diffuse node embeddings quickly by calculating them analytically.
         The calculations require the personalized page rank diffusion matrix
@@ -162,8 +159,8 @@ class P2PNetwork:
             for u, v in self.edges:
                 if random.random() < 0.1:
                     mesg_to_v, mesg_to_u = u.send_embedding(), v.send_embedding()
-                    v.receive_embedding(u, mesg_to_v)
-                    u.receive_embedding(v, mesg_to_u)
+                    v.receive_embedding(u, mesg_to_v, self.ppr_a)
+                    u.receive_embedding(v, mesg_to_u, self.ppr_a)
 
             random.shuffle(self.nodes)
             outgoing = {}
