@@ -10,7 +10,7 @@ from pathlib import Path
 class Simulation:
 
     def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_searches_per_iter, ttl
+        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, n_searches_per_iter, ttl
     ):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
@@ -21,6 +21,7 @@ class Simulation:
         )
 
         self.n_docs = n_docs
+        self.n_iters = n_iters
         self.n_searches_per_iter = n_searches_per_iter
         self.ttl = ttl
 
@@ -29,6 +30,7 @@ class Simulation:
             "graph_name": graph_name,
             "ppr_a": ppr_a,
             "n_docs": n_docs,
+            "n_iters": n_iters,
             "n_searches_per_iter": n_searches_per_iter,
             "ttl": ttl,
         }
@@ -52,10 +54,10 @@ class Simulation:
         # self.print("scattering query messages")
         searches = [QuerySearch(query) for _ in range(self.n_searches_per_iter)]
         messages = [search.spawn_message(self.ttl) for search in searches]
-        self.network.scatter_queries(messages)
+        self.network.scatter_messages(messages)
 
         # self.print("forwarding query messages")
-        _ = self.network.forward_queries(epochs=5 * self.ttl, monitor=None)
+        _ = self.network.forward_messages(epochs=5 * self.ttl, monitor=None)
 
         # self.print("computing stats")
         successful_searches = [
@@ -69,12 +71,12 @@ class Simulation:
             "hops_success": hops,
         }
 
-    def run(self, n_iters):
+    def run(self):
 
         n_total = 0
         n_success = 0
         hops_success = []
-        for _ in tqdm(range(n_iters)):
+        for _ in tqdm(range(self.n_iters)):
             results = self.iterate()
             n_total += results["n_total"]
             n_success += results["n_success"]
@@ -114,8 +116,8 @@ class Simulation:
             for res_name, res_value in results.items():
                 f.write(f"{res_name}: {res_value}\n")
                 
-    def __call__(self, n_iters, save=True):
-        results = self.run(n_iters=n_iters)
+    def __call__(self, save=True):
+        results = self.run()
         results = self.postprocess(results)
         if save:
             self.save(results)
@@ -125,16 +127,15 @@ class Simulation:
         print(f"[simulation {self.sim_id}]: {text}")
 
 
-# n_success, p_success, hops = sim(graph_name, dataset_name, ppr_a, n_iters, n_docs)
-
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, default=4)
-parser.add_argument("-nd", "--n-docs", type=int, default=10)
-parser.add_argument("-nm", "--n-messages", type=int, default=10)
-parser.add_argument("-g", "--graph-name", type=str, default="fb")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove")
-parser.add_argument("-a", "--ppr-a", type=float, default=0.5)
-parser.add_argument("-t", "--ttl", type=int, default=50)
+parser.add_argument("-ni", "--n-iters", type=int, help="Number of iterations.")
+parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents in the network.")
+parser.add_argument("-nm", "--n-messages", type=int, help="Number of messages per query in the network.")
+parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
+parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
+parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
+parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
+
 
 args = parser.parse_args()
 
@@ -143,9 +144,10 @@ sim = Simulation(
     graph_name=args.graph_name,
     ppr_a=args.ppr_a,
     n_docs=args.n_docs,
+    n_iters=args.n_iters,
     n_searches_per_iter=args.n_messages,
     ttl=args.ttl,
 )
 
-results = sim(args.n_iters)
+results = sim()
 print(results)

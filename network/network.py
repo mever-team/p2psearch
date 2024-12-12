@@ -67,10 +67,10 @@ class P2PNetwork:
         for node, doc in zip(random.choices(self.nodes, k=len(documents)), documents):
             node.add_doc(doc)
 
-    def scatter_queries(self, queries: List[QueryMessage]):
-        """Stores queries to nodes sampled randonly from the graph (with replacement)."""
-        for node, query in zip(random.choices(self.nodes, k=len(queries)), queries):
-            node.add_query(query)
+    def scatter_messages(self, messages: List[QueryMessage]):
+        """Stores messages to nodes sampled randonly from the graph (with replacement)."""
+        for node, query in zip(random.choices(self.nodes, k=len(messages)), messages):
+            node.add_message(query)
 
     def diffuse_embeddings(self, epochs, monitor=None):
         """
@@ -119,12 +119,12 @@ class P2PNetwork:
             u.neighbors_index[v] = v.embedding
             v.neighbors_index[u] = u.embedding
 
-    def forward_queries(self, epochs, monitor):
+    def forward_messages(self, epochs, monitor):
         """
-        Forward queries for multiple epochs.
+        Forward messages for multiple epochs.
 
         Arguments:
-            epochs: The number of epochs to run queries.
+            epochs: The number of epochs to run messages.
             monitor: Utility object to stop early.
 
         Returns:
@@ -134,13 +134,13 @@ class P2PNetwork:
         for time in range(epochs):
             outgoing = {}
             for u in nodes_to_check:
-                if u.has_queries_to_send():
-                    outgoing[u] = u.send_queries()
+                if u.has_messages_to_send():
+                    outgoing[u] = u.send_messages()
 
             nodes_to_check = []
             for u, to_send in outgoing.items():
-                for v, queries in to_send.items():
-                    v.receive_queries(queries, u)
+                for v, messages in to_send.items():
+                    v.receive_messages(messages, u)
                     nodes_to_check.append(v)  # focus only on nodes with queries to send
 
             if len(nodes_to_check) == 0:

@@ -78,7 +78,7 @@ class Node:
         Adds a query message to the node at the start of a simulation.
 
         Arguments:
-            query (MessageQuery): A message representing a query.
+            message (MessageQuery): A message representing a query.
         """
 
         assert message.ttl >= 0, f"{message}, ttl should be >= 0"
@@ -86,7 +86,7 @@ class Node:
         if message.is_alive():
             if message.name in self.messages_queue:
                 self.messages_queue[message.name].receive(message)
-                message.kill(self, reason=f"query merged with queued clone")
+                message.kill(self, reason=f"message merged with queued clone")
             else:
                 self.messages_queue[message.name] = message
         else:
@@ -142,23 +142,23 @@ class Node:
             ) / (N + 1) ** 0.5 + ppr_a * self.personalization
         self.neighbors_index[neighbor] = neighbor_embedding
 
-    def filter_seen_from(self, nodes, query, as_type=list):
+    def filter_seen_from(self, nodes, message, as_type=list):
         """Utility function that filters the nodes from which a message was seen."""
-        return as_type(set(nodes).difference(self.messages_seen_from[query.name]))
+        return as_type(set(nodes).difference(self.messages_seen_from[message.name]))
 
-    def filter_sent_to(self, nodes, query, as_type=list):
+    def filter_sent_to(self, nodes, message, as_type=list):
         """Utility function that filters the nodes to which a message was sent in the past."""
-        return as_type(set(nodes).difference(self.messages_sent_to[query.name]))
+        return as_type(set(nodes).difference(self.messages_sent_to[message.name]))
 
-    def filter_query_history(self, nodes, query, as_type=list):
+    def filter_message_history(self, nodes, message, as_type=list):
         """Utility function that filters the nodes from which a message has passed as recorded in its history."""
         nodes = {node.name: node for node in nodes}
-        for visited_node_name in query.visited_nodes:
+        for visited_node_name in message.visited_nodes:
             if visited_node_name in nodes:
                 nodes.pop(visited_node_name)
         return as_type(nodes.values())
 
-    def has_queries_to_send(self):
+    def has_messages_to_send(self):
         """Utility function that checks if node has pending messages to forward."""
         return len(self.messages_queue) > 0
 
