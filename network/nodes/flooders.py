@@ -6,26 +6,26 @@ class FlooderNode(Node):
     A class representing a P2P network node that forwards messages via flooding.
     Implements the Node abstract class.
 
-    FlooderNode forwards query messages the first time and discards them upon subsequent receptions.
+    FlooderNode forwards query messages the first time and discards them the next time it resees them.
     It does not use personalization embeddings.
 
-    Instance attributes:
+    Attributes:
         --> refer to Node.
     """
 
-    def receive_messages(self, queries, from_node):
+    def receive_messages(self, messages, from_node):
         """
-        Overrides receive_queries by Node.
+        Overrides receive_messages by Node.
         Discards seen messages as reforwarding makes no sense with flooding.
 
         Arguments:
-            queries (Iterable[QueryMessage]): An iterable of received messages.
-            from_node (Node): The node from which messages were received.
+            queries (Sequence[QueryMessage]): A sequence of received messages.
+            from_node (Node): The node from which the messages are received.
         """
 
-        super().receive_messages(queries, from_node, kill_seen=True)
+        super().receive_messages(messages, from_node, kill_seen=True)
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node.
         Selects all neighbors except for the node that sent the message.
@@ -41,5 +41,5 @@ class FlooderNode(Node):
         if len(neighbors) == 0:
             return []
 
-        next_hops = self.filter_seen_from(neighbors, query, as_type=list)
+        next_hops = self.filter_seen_from(neighbors, message, as_type=list)
         return next_hops

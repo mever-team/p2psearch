@@ -13,30 +13,30 @@ class WalkerNode(Node):
     It does not discard previously seen messages
     but tries to avoid forwarding to neighbors that have already seen the message.
 
-    Instance attributes:
+    Attributes:
         --> refer to Node.
     """
 
-    def receive_messages(self, queries, from_node):
+    def receive_messages(self, messages, from_node):
         """
-        Overrides receive_queries by Node.
-        Does not discard seen messages as reforwarding makes sense with random walks.
+        Overrides receive_messages by Node.
+        Does not discard seen messages as reforwarding *does* make sense with random walks.
 
         Arguments:
-            queries (Iterable[QueryMessage]): An iterable of received messages.
-            from_node (Node): The node from which messages were received.
+            messages (Sequence[QueryMessage]): A sequence of received messages.
+            from_node (Node): The node from which the messages are received.
         """
 
-        super().receive_messages(queries, from_node, kill_seen=False)
+        super().receive_messages(messages, from_node, kill_seen=False)
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node.
         Samples a node uniformly from the node's neighbors (unbiased walk).
         Tries to filter nodes that have already seen the message but reverts if no options are available.
 
         Arguments:
-            query (QueryMessage): The message to be forwarded.
+            message (QueryMessage): The message to be forwarded.
 
         Returns:
             List[Node]: The nodes to forward the message.
@@ -46,11 +46,11 @@ class WalkerNode(Node):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_seen_from(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_sent_to(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
@@ -63,23 +63,19 @@ class HardSumEmbeddingNode(WalkerNode):
     The walker selects the neighbor whose embedding has the highest dot product with the query embedding.
     It does not discard seen messages and tries to avoid forwarding to nodes that have already seen the message.
 
-    Instance attributes:
-        remove_succesful_queries (bool): Discards queries that have found the golden document.
-            In practice, the node does not know which is the golden document,
-            this is meant as a computational shortcut for the hit count and the hop count length,
-            which are not affected by the next hops.
+    Attributes:
         --> for other attributes, refer to Node.
     """
 
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.
         Selects the neighbor whose embedding has the highest dot product with the query embedding.
         Tries to filter nodes that have already seen the message but reverts if no options are available.
 
         Arguments:
-            query (QueryMessage): The message to be forwarded.
+            message (QueryMessage): The message to be forwarded.
 
         Returns:
             List[Node]: The nodes to forward the message.
@@ -89,18 +85,18 @@ class HardSumEmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_seen_from(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_sent_to(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
         neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
-                np.sum(query.embedding * neighbor_embedding)
+                np.sum(message.embedding * neighbor_embedding)
                 for neighbor_embedding in neighbor_embeddings
             ]
         )
@@ -117,7 +113,7 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
     Every spawn_interval, it also samples two nodes instead of one.
     It does not discard seen messages and tries to avoid forwarding to nodes that have already seen the message.
 
-    Instance attributes:
+    Attributes:
         spawn_interval (int): Hop interval at which to spawn walkers.
         --> for other attributes, refer to Node.
     """
@@ -130,14 +126,14 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
         self.spawn_interval = spawn_interval
         super(HardSumL2EmbeddingNodeWithSpawn, self).__init__(*args, **kwargs)
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.
         Similar to HardSumEmbeddingNode but also spawns two walkers every spawn_interval.
         Tries to filter nodes that have already seen the message but reverts if no options are available.
 
         Arguments:
-            query (QueryMessage): The message to be forwarded.
+            message (QueryMessage): The message to be forwarded.
 
         Returns:
             List[Node]: The nodes to forward the message.
@@ -147,22 +143,22 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_seen_from(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_sent_to(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
         neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
-                np.linalg.norm(query.embedding - neighbor_embedding)
+                np.linalg.norm(message.embedding - neighbor_embedding)
                 for neighbor_embedding in neighbor_embeddings
             ]
         )
-        if len(query.visited_nodes) % self.spawn_interval == 0:
+        if len(message.visited_nodes) % self.spawn_interval == 0:
             idxs = np.argsort(scores)[:2]
             return [neighbors[idx] for idx in idxs]
         else:
@@ -178,19 +174,19 @@ class HardSumL2EmbeddingNode(WalkerNode):
     The walker selects the neighbor whose embedding has the lowest L2 distance from the query embedding.
     It does not discard seen messages and tries to avoid forwarding to nodes that have already seen the message.
 
-    Instance attributes:
+    Attributes:
         spawn_interval (int): Hop interval at which to spawn walkers.
         --> for other attributes, refer to Node.
     """
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.
         Selects the neighbor whose embedding has the lowest L2 distance with the query embedding.
         Tries to filter nodes that have already seen the message but reverts if no options are available.
 
         Arguments:
-            query (QueryMessage): The message to be forwarded.
+            message (QueryMessage): The message to be forwarded.
 
         Returns:
             List[Node]: The nodes to forward the message.
@@ -200,18 +196,18 @@ class HardSumL2EmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_seen_from(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query, as_type=list)
+        filtered_neighbors = self.filter_sent_to(neighbors, message, as_type=list)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
         neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
-                -np.linalg.norm(query.embedding - neighbor_embedding)
+                -np.linalg.norm(message.embedding - neighbor_embedding)
                 for neighbor_embedding in neighbor_embeddings
             ]
         )
@@ -228,11 +224,11 @@ class SoftSumEmbeddingNode(WalkerNode):
     Meant for robustness and variety.
     It does not discard seen messages and tries to avoid forwarding to nodes that have already seen the message.
 
-    Instance attributes:
+    Attributes:
         --> refer to Node.
     """
 
-    def get_next_hops(self, query):
+    def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.
         Samples a node from the top 3 neighbors whose embeddings have the highest dot product with the query embedding.
@@ -240,7 +236,7 @@ class SoftSumEmbeddingNode(WalkerNode):
         Tries to filter nodes that have already seen the message but reverts if no options are available.
 
         Arguments:
-            query (QueryMessage): The message to be forwarded.
+            message (QueryMessage): The message to be forwarded.
 
         Returns:
             List[Node]: The nodes to forward the message.
@@ -250,18 +246,18 @@ class SoftSumEmbeddingNode(WalkerNode):
         if len(neighbors) == 0:
             return []
 
-        filtered_neighbors = self.filter_seen_from(neighbors, query)
+        filtered_neighbors = self.filter_seen_from(neighbors, message)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
-        filtered_neighbors = self.filter_sent_to(neighbors, query)
+        filtered_neighbors = self.filter_sent_to(neighbors, message)
         if len(filtered_neighbors) > 0:
             neighbors = filtered_neighbors
 
         neighbor_embeddings = [self.neighbors_index[neighbor] for neighbor in neighbors]
         scores = np.array(
             [
-                np.sum(query.embedding * neighbor_embedding)
+                np.sum(message.embedding * neighbor_embedding)
                 for neighbor_embedding in neighbor_embeddings
             ]
         )
