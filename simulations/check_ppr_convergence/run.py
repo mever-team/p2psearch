@@ -33,14 +33,11 @@ class DiffusionMonitorWithEarlyStop:
     def __call__(self):
         self.embs.append(np.array([node.embedding for node in self.nodes]))
         emb_diff = distance(self.embs[-1], self.embs[-2])
-        print(
-            f"[Diffusion monitor]: embedding variation in a round {emb_diff}"
-        )
+        print(f"[Diffusion monitor]: embedding variation in a round {emb_diff}")
         return emb_diff > self.tolerance
 
 
 class Simulation:
-
     """
     A simulation that validates the convergence of the asynchronous personalized page rank
     diffusion embeddings to their exact values, computed analytically.
@@ -51,7 +48,7 @@ class Simulation:
     The results from all iterations are summarized in a text file and plotted.
     """
 
-    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, max_epochs, tolerance):
+    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, n_iters, max_epochs, tolerance):
         self.sim_id = str(uuid4())
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
@@ -61,6 +58,7 @@ class Simulation:
         )
 
         self.n_docs = n_docs
+        self.n_iters = n_iters
         self.max_epochs = max_epochs
         self.tolerance = tolerance
 
@@ -69,6 +67,7 @@ class Simulation:
             "graph_name": graph_name,
             "ppr_a": ppr_a,
             "n_docs": n_docs,
+            "n_iters": n_iters,
             "max_epochs": max_epochs,
             "tolerance": tolerance,
         }
@@ -89,9 +88,9 @@ class Simulation:
         exact_embeddings = self.network.embeddings
         return {"emb_diffs": distance(async_embeddings, exact_embeddings)}
 
-    def run(self, n_iters):
+    def run(self):
         all_emb_diffs = []
-        for _ in tqdm(range(n_iters)):
+        for _ in tqdm(range(self.n_iters)):
             all_emb_diffs.append(self.iterate()["emb_diffs"])
         return {"all_emb_diffs": all_emb_diffs}
 
@@ -112,7 +111,9 @@ class Simulation:
             f.write("-------\n")
             f.write("embedding deviation from analytic values\n")
             for i, emb_diffs in enumerate(results["all_emb_diffs"]):
-                f.write(f"iter {i}: {emb_diffs[0]} -> {emb_diffs[-1]} in {len(emb_diffs)} epochs\n")
+                f.write(
+                    f"iter {i}: {emb_diffs[0]} -> {emb_diffs[-1]} in {len(emb_diffs)} epochs\n"
+                )
 
         fig, ax = plt.subplots(figsize=(6, 5))
         for diffs in results["all_emb_diffs"]:
@@ -120,12 +121,11 @@ class Simulation:
             ax.grid()
             ax.set_xlabel("Epochs", family="serif", size=16)
             ax.set_ylabel("Embeddings convergence metric", family="serif", size=16)
-            ax.legend(prop={'family':"serif", 'size': 13})
+            ax.legend(prop={"family": "serif", "size": 13})
             fig.savefig(run_path / "plot.png")
 
-
-    def __call__(self, n_iters, save=True):
-        results = self.run(n_iters)
+    def __call__(self, save=True):
+        results = self.run()
         if save:
             self.save(results)
         return results
@@ -135,13 +135,38 @@ class Simulation:
 
 
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, help="Number of times to check convergence in the same network.")
-parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents to scatter in the network.")
-parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
-parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
-parser.add_argument("-me", "--max-epochs", type=int, default=500, help="Maximum number of epochs to wait for convergence.")
-parser.add_argument("-t", "--tolerance", type=float, default=10**-10, help="Tolerance for convergence.")
+parser.add_argument(
+    "-ni",
+    "--n-iters",
+    type=int,
+    help="Number of times to check convergence in the same network.",
+)
+parser.add_argument(
+    "-nd", "--n-docs", type=int, help="Number of documents to scatter in the network."
+)
+parser.add_argument(
+    "-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank."
+)
+parser.add_argument(
+    "-g", "--graph-name", type=str, default="fb", help="Name of the network graph."
+)
+parser.add_argument(
+    "-d",
+    "--dataset-name",
+    type=str,
+    default="glove",
+    help="Name of the retrieval dataset.",
+)
+parser.add_argument(
+    "-me",
+    "--max-epochs",
+    type=int,
+    default=500,
+    help="Maximum number of epochs to wait for convergence.",
+)
+parser.add_argument(
+    "-t", "--tolerance", type=float, default=10**-10, help="Tolerance for convergence."
+)
 
 args = parser.parse_args()
 
@@ -150,9 +175,10 @@ sim = Simulation(
     graph_name=args.graph_name,
     ppr_a=args.ppr_a,
     n_docs=args.n_docs,
+    n_iters=args.n_iters,
     max_epochs=args.max_epochs,
     tolerance=args.tolerance,
 )
 
-results = sim(n_iters=args.n_iters, save=True)
+results = sim(save=True)
 print(results)
