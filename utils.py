@@ -1,16 +1,6 @@
-import os
 import numpy as np
-import networkx as nx
-
 from scipy import sparse
 from scipy.sparse.linalg import inv
-
-
-def search(nodes, query_embedding):
-    return max(
-        [doc for node in nodes for doc in node.docs.values()],
-        key=lambda doc: np.sum(doc.embedding * query_embedding),
-    )
 
 
 def analytic_ppr(adj, alpha, symmetric=True):
@@ -79,55 +69,55 @@ def exact_analytic_ppr(adj, alpha, symmetric=True):
     return alpha * inv(I - (1 - alpha) * trans_mat)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # Delay analysis of the calculation of PPR.
+#     # Delay analysis of the calculation of PPR.
 
-    from loader import load_graph
-    from nodes import Node
-    import random
-    import time
-    import os
-    import matplotlib.pyplot as plt
+#     from loader import load_graph
+#     from nodes import Node
+#     import random
+#     import time
+#     import os
+#     import matplotlib.pyplot as plt
 
-    graph_name = "fb"
-    graph = load_graph(Node, graph_name)
-    n = graph.number_of_nodes()
-    pers = np.zeros((n, 50))
-    idxs = random.sample(range(n), k=n // 5)
-    pers[idxs] = np.random.normal(0, 1, (len(idxs), pers.shape[1]))
+#     graph_name = "fb"
+#     graph = load_graph(Node, graph_name)
+#     n = graph.number_of_nodes()
+#     pers = np.zeros((n, 50))
+#     idxs = random.sample(range(n), k=n // 5)
+#     pers[idxs] = np.random.normal(0, 1, (len(idxs), pers.shape[1]))
 
-    alpha_vals = np.arange(0.1, 0.91, 0.1)
-    elapsed_power = []
-    elapsed_exact = []
-    for alpha in alpha_vals:
-        print(f"for alpha {alpha}")
-        start = time.time()
-        ppr1 = power_analytic_ppr(nx.adjacency_matrix(graph), alpha, pers)
-        elapsed = time.time() - start
-        elapsed_power.append(elapsed)
-        print(f"power method {elapsed} secs")
+#     alpha_vals = np.arange(0.1, 0.91, 0.1)
+#     elapsed_power = []
+#     elapsed_exact = []
+#     for alpha in alpha_vals:
+#         print(f"for alpha {alpha}")
+#         start = time.time()
+#         ppr1 = power_analytic_ppr(nx.adjacency_matrix(graph), alpha, pers)
+#         elapsed = time.time() - start
+#         elapsed_power.append(elapsed)
+#         print(f"power method {elapsed} secs")
 
-        start = time.time()
-        ppr2 = exact_analytic_ppr(nx.adjacency_matrix(graph), alpha, pers)
-        elapsed = time.time() - start
-        elapsed_exact.append(elapsed)
-        print(f"exact method {elapsed} secs")
+#         start = time.time()
+#         ppr2 = exact_analytic_ppr(nx.adjacency_matrix(graph), alpha, pers)
+#         elapsed = time.time() - start
+#         elapsed_exact.append(elapsed)
+#         print(f"exact method {elapsed} secs")
 
-        print(f"difference {np.max(np.abs(ppr1-ppr2))}")
+#         print(f"difference {np.max(np.abs(ppr1-ppr2))}")
 
-    plt.figure()
-    plt.grid()
-    plt.plot(alpha_vals, elapsed_power, label="power")
-    plt.plot(alpha_vals, elapsed_exact, label="exact")
-    plt.legend()
-    plt.xlabel("PPR alpha")
-    plt.ylabel("Time (secs)")
-    plt.title(f"PPR time analysis for graph {graph_name}")
+#     plt.figure()
+#     plt.grid()
+#     plt.plot(alpha_vals, elapsed_power, label="power")
+#     plt.plot(alpha_vals, elapsed_exact, label="exact")
+#     plt.legend()
+#     plt.xlabel("PPR alpha")
+#     plt.ylabel("Time (secs)")
+#     plt.title(f"PPR time analysis for graph {graph_name}")
 
-    imgs_path = os.path.join(os.path.dirname(__file__), "img")
-    figsfolder_path = os.path.join(imgs_path, "ppr_delay_analysis")
-    if not os.path.exists(figsfolder_path):
-        os.mkdir(figsfolder_path)
-    fig_path = os.path.join(figsfolder_path, graph_name)
-    plt.savefig(fig_path)
+#     imgs_path = os.path.join(os.path.dirname(__file__), "img")
+#     figsfolder_path = os.path.join(imgs_path, "ppr_delay_analysis")
+#     if not os.path.exists(figsfolder_path):
+#         os.mkdir(figsfolder_path)
+#     fig_path = os.path.join(figsfolder_path, graph_name)
+#     plt.savefig(fig_path)
