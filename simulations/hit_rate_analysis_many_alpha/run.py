@@ -16,8 +16,17 @@ from matplotlib import pyplot as plt
 
 class Simulation:
 
+    """
+    A simulation that computes the top-1 retrieval accuracy as a function of the hop distance 
+    between the query and the gold document for multiple values of the personalized page rank
+    diffusion parameter.
+
+    The simulation aggregates and plots the hit rates for the given values of the diffusion parameter.
+    For more details on the computation of the hit rates, see the hit_rate_analysis module.
+    """
+
     def __init__(
-        self, dataset_name, graph_name, all_ppr_a, n_docs, n_searches_per_iter, ttl
+        self, dataset_name, graph_name, all_ppr_a, n_docs, n_iters, ttl
     ):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
@@ -28,7 +37,7 @@ class Simulation:
         )
 
         self.n_docs = n_docs
-        self.n_searches_per_iter = n_searches_per_iter
+        self.n_iters = n_iters
         self.ttl = ttl
         self.all_ppr_a = all_ppr_a
 
@@ -37,7 +46,7 @@ class Simulation:
             "graph_name": graph_name,
             "all_ppr_a": all_ppr_a,
             "n_docs": n_docs,
-            "n_searches_per_iter": n_searches_per_iter,
+            "n_iters": n_iters,
             "ttl": ttl,
         }
 
@@ -65,22 +74,22 @@ class Simulation:
         for hop, node in hop2node.items():
             search = QuerySearch(query) 
             hop2search[hop] = search
-            node.add_query(search.spawn_message(self.ttl))
+            node.add_message(search.spawn_message(self.ttl))
 
         # self.print("forwarding query messages")
-        _ = self.network.forward_queries(epochs=5 * self.ttl, monitor=None)
+        _ = self.network.forward_messages(epochs=5 * self.ttl, monitor=None)
 
         # self.print("computing stats")
         hop2success = {hop:int(search.candidate_doc == gold_doc) for hop, search in hop2search.items()}
     
         return {"hop2success": hop2success}
 
-    def run_for_single_alpha(self, n_iters, ppr_a):
+    def run_for_single_alpha(self, ppr_a):
      
         self.network.set_ppr_a(ppr_a=ppr_a)
 
         hop2success = defaultdict(lambda: [])
-        for _ in tqdm(range(n_iters)):
+        for _ in tqdm(range(self.n_iters)):
             results = self.iterate()
             for hop, success in results["hop2success"].items():
                 hop2success[hop].append(success)
@@ -89,12 +98,12 @@ class Simulation:
             "hop2success": hop2success
         }
 
-    def run(self, n_iters):
+    def run(self):
 
         alpha2results = {}
 
         for ppr_a in self.all_ppr_a:
-            results = self.run_for_single_alpha(n_iters, ppr_a=ppr_a)
+            results = self.run_for_single_alpha(ppr_a=ppr_a)
             alpha2results[ppr_a] = self.postprocess(results)
         
         return alpha2results
@@ -109,7 +118,7 @@ class Simulation:
 
     def save(self, alpha2results):
         run_path = Path(__file__).parent / "runs" / str(self.sim_id)
-        run_path.mkdir(exist_ok=True)
+        run_path.mkdir(exist_ok=True, parents=True)
         
         with open(run_path / f"results.txt", "w") as f:
 
@@ -137,11 +146,11 @@ class Simulation:
         ax.set_xlabel("TTL (hops)", family="serif", size=16)
         ax.set_ylabel("Accuracy (%)", family="serif", size=16)
         ax.legend(prop={'family':"serif", 'size': 13})
-        fig.savefig(run_path / "plot.png")
+        fig.savefig(run_path / "plot.pdf")
 
-    def __call__(self, n_iters, save=True):
+    def __call__(self, save=True):
         
-        alpha2results = self.run(n_iters=n_iters)
+        alpha2results = self.run()
         if save:
             self.save(alpha2results)
         return alpha2results
@@ -153,27 +162,22 @@ class Simulation:
 # n_success, p_success, hops = sim(graph_name, dataset_name, ppr_a, n_iters, n_docs)
 
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, default=4)
-parser.add_argument("-nd", "--n-docs", type=int, default=10)
-parser.add_argument("-nm", "--n-messages", type=int, default=10)
-parser.add_argument("-g", "--graph-name", type=str, default="fb")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove")
-parser.add_argument("-a", "--all-ppr-a", type=list[float], default=[0.1, 0.5, 0.9])
-parser.add_argument("-t", "--ttl", type=int, default=50)
-
+parser.add_argument("-ni", "--n-iters", type=int, help="Number of iterations.")
+parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents in the network.")
+parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
+parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
+parser.add_argument("-a", "--all-ppr-a", type=float, nargs="+", help="List of diffusion parameters of personalized page rank to compare in a simulation.")
+parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
 args = parser.parse_args()
-
-alpha2results = {}
-
 
 sim = Simulation(
     dataset_name=args.dataset_name,
     graph_name=args.graph_name,
     all_ppr_a=args.all_ppr_a,
     n_docs=args.n_docs,
-    n_searches_per_iter=args.n_messages,
+    n_iters=args.n_iters,
     ttl=args.ttl,
 )
 
-results = sim(args.n_iters)
+results = sim()
 print(results)

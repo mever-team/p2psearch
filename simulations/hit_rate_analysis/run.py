@@ -15,8 +15,19 @@ from matplotlib import pyplot as plt
 
 class Simulation:
 
+    """
+    A simulation that computes the top-1 retrieval accuracy as a function of the hop distance 
+    between the query and the gold document.
+
+    In each iteration, the simulation samples a query and scatters a given number of documents
+    in the network, including the gold document. It then starts multiple search operations with 
+    the same query from multiple nodes, specifically, one per each distance away from the node
+    with the gold document. At the end, the hit rates are aggregated for each distance and saved
+    in a plot.
+    """
+
     def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_searches_per_iter, ttl
+        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, ttl
     ):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
@@ -27,7 +38,7 @@ class Simulation:
         )
 
         self.n_docs = n_docs
-        self.n_searches_per_iter = n_searches_per_iter
+        self.n_iters = n_iters
         self.ttl = ttl
 
         self.params = {
@@ -35,7 +46,7 @@ class Simulation:
             "graph_name": graph_name,
             "ppr_a": ppr_a,
             "n_docs": n_docs,
-            "n_searches_per_iter": n_searches_per_iter,
+            "n_iters": n_iters,
             "ttl": ttl,
         }
 
@@ -63,20 +74,20 @@ class Simulation:
         for hop, node in hop2node.items():
             search = QuerySearch(query) 
             hop2search[hop] = search
-            node.add_query(search.spawn_message(self.ttl))
+            node.add_message(search.spawn_message(self.ttl))
 
         # self.print("forwarding query messages")
-        _ = self.network.forward_queries(epochs=5 * self.ttl, monitor=None)
+        _ = self.network.forward_messages(epochs=5 * self.ttl, monitor=None)
 
         # self.print("computing stats")
         hop2success = {hop:int(search.candidate_doc == gold_doc) for hop, search in hop2search.items()}
     
         return {"hop2success": hop2success}
 
-    def run(self, n_iters):
+    def run(self):
         
         hop2success = defaultdict(lambda: [])
-        for _ in tqdm(range(n_iters)):
+        for _ in tqdm(range(self.n_iters)):
             results = self.iterate()
             for hop, success in results["hop2success"].items():
                 hop2success[hop].append(success)
@@ -118,10 +129,10 @@ class Simulation:
         ax.set_xlabel("TTL (hops)", family="serif", size=16)
         ax.set_ylabel("Accuracy (%)", family="serif", size=16)
         ax.legend(prop={'family':"serif", 'size': 13})
-        fig.savefig(run_path / "plot.png")
+        fig.savefig(run_path / "plot.pdf")
 
-    def __call__(self, n_iters, save=True):
-        results = self.run(n_iters=n_iters)
+    def __call__(self, save=True):
+        results = self.run()
         results = self.postprocess(results)
         if save:
             self.save(results)
@@ -131,16 +142,13 @@ class Simulation:
         print(f"[simulation {self.sim_id}]: {text}")
 
 
-# n_success, p_success, hops = sim(graph_name, dataset_name, ppr_a, n_iters, n_docs)
-
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, default=4)
-parser.add_argument("-nd", "--n-docs", type=int, default=10)
-parser.add_argument("-nm", "--n-messages", type=int, default=10)
-parser.add_argument("-g", "--graph-name", type=str, default="fb")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove")
-parser.add_argument("-a", "--ppr-a", type=float, default=0.5)
-parser.add_argument("-t", "--ttl", type=int, default=50)
+parser.add_argument("-ni", "--n-iters", type=int, help="Number of iterations.")
+parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents in the network.")
+parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
+parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
+parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
+parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
 
 args = parser.parse_args()
 
@@ -149,9 +157,9 @@ sim = Simulation(
     graph_name=args.graph_name,
     ppr_a=args.ppr_a,
     n_docs=args.n_docs,
-    n_searches_per_iter=args.n_messages,
+    n_iters=args.n_iters,
     ttl=args.ttl,
 )
 
-results = sim(args.n_iters)
+results = sim()
 print(results)

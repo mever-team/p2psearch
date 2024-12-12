@@ -49,24 +49,22 @@ class QuerySearch:
     """
     A class representing the search for a document inside a P2P network.
 
-    The search object contains one query and can spawn multiple messages
-    inside the network. It also contains utility functions to monitor these
-    messages and determine the best document for retrieval at any time.
-    This is for convenience, as in practice the retrieval results would be
-    collected and aggregated at the querying node when all associated messages
-    finish their walks.
+    The search object contains one query but can spawn multiple messages
+    inside the network. It also has utility functions to monitor these
+    messages and determine the best document for retrieval at any given time.
+    This is for convenience, as in a real network the retrieval results would 
+    need to be sent back to the querying node when all messages finish their walks.
 
-    Note that search objects and their messages are unique but they can carry
-    the same query. They are treated independently by the network.
+    Note that different search objects are always treated independently by the network
+    even though they can carry the same query.
 
     Attributes:
         search_id (str): A unique field identifying the search. Nodes can
             determine which messages belong to the same search through this field.
         query (Query): The query object associated with the search.
-        messages (list[QueryMessage]): A list of all messages spawned by this search.
-            Useful to centrally monitor all messages associated with this search.
-            The list also tracks messages that are cloned during the simulation
-            via a callback.
+        messages (list[QueryMessage]): A list of all messages spawned by this search,
+            useful for their central monitoring. The list also tracks messages that
+            are cloned by other messages during the simulation via a callback.
     """
 
     def __init__(self, query: Query):
@@ -83,13 +81,13 @@ class QuerySearch:
 
     def spawn_message(self, ttl: int):
         """
-        Spawns a message carrying a query.
+        Spawns a message that carries the query associated with this search.
 
         Arguments:
             ttl (int): Time-to-live field.
 
         Returns:
-            QueryMessage: A message carrying the query associated with the search.
+            QueryMessage: A message carrying the query associated with this search.
         """
         message = QueryMessage(
             query=self.query,
@@ -113,7 +111,7 @@ class QuerySearch:
     def candidate_doc(self):
         """
         Computes the best candidate document for retrieval across all messages
-        spawned by this search.
+        associated with this search.
 
         Returns:
             Document: The candidate document.
@@ -128,8 +126,8 @@ class QuerySearch:
     @property
     def hops_to_reach_candidate_doc(self):
         """
-        Computes the hop count until the best candidate document for retrieval
-        across all messages spawned by this search.
+        Computes the hop count to the best candidate document for retrieval
+        across all messages associated with this search.
 
         Returns:
             int: The hop count to the candidate document.
@@ -144,7 +142,7 @@ class QuerySearch:
     @property
     def visited_tree(self):
         """
-        Computes the edges travelled by all messages spawned by this search.
+        Computes the edges travelled by all messages associated with this search.
 
         Returns:
             list[Node]: A list of all travelled edges (without duplicates).
@@ -163,26 +161,26 @@ class QuerySearch:
 
 class QueryMessage:
     """
-    A class representing a message carrying a query.
+    A class representing a message that carries a query.
 
     All query messages are associated with a search object. They should *not* be initialized
-    directly but they should be spawned by the search object or cloned by another message.
+    directly, instead they should be spawned by the search object or cloned by another message.
 
-    Note that node embeddings are also diffused via message passing but message objects refer
+    Note that although node embeddings are also diffused via message passing, message objects refer
     only to query messages in this simulation.
 
     Attributes:
         name (string): A name identifying the message, unique in the network.
         query (Query): The query carried by the message.
-        embedding (np.array): The query embedding carried by this message.
-        search_id (str): A field identifying the search that this message is associated with.
+        embedding (np.array): The embedding of the query carried by the message.
+        search_id (str): A field identifying the search that the message is associated with.
         ttl (int): The time-to-live field of the message.
         hops (int): The hops that the message has travelled so far.
-        hops_to_reach_doc (int): The hops to reach the candidate document for this message.
-        candidate_doc (Document): The best candidate document for this query message.
-        candidate_doc_similarity (float): The score of the best candidate document for this query message.
-        visited_edges (list[tuple]): The edges visited by this query message in correct order.
-        visited_nodes (list[Node]): The nodes visited by this query message in correct order.
+        hops_to_reach_doc (int): The hops to reach the candidate document for the message.
+        candidate_doc (Document): The best candidate document for the query carried by the message.
+        candidate_doc_similarity (float): The score of the best candidate document for the query carried by the message.
+        visited_edges (list[tuple]): The edges visited by the query message in chronological order.
+        visited_nodes (list[Node]): The nodes visited by the query message in chronological order.
     """
 
     counter = 0
@@ -200,15 +198,15 @@ class QueryMessage:
         Arguments:
             query (Query): A query object.
             ttl (int): A time-to-live value.
-            search_id (string): The identification of a search to associate the message with.
+            search_id (string): The identification of a search object associated with the message.
             register_message_callback (lambda): A callback function to register the message
-                to a search object.
+                to its associated search object.
         """
         self.name = f"mesg{self.__class__.counter}"
         self.__class__.counter += 1
 
         self.query = query
-        self.ttl = ttl
+        self.ttl = ttl # treated as immutable parameter, aliveness is determined by self.hops
         self.search_id = search_id
         self.register_message_callback = register_message_callback
 
@@ -257,7 +255,7 @@ class QueryMessage:
         self.register_message_callback(copy)
         return copy
 
-    def send(self, from_node, to_node):  # use node names?
+    def send(self, from_node, to_node):  # use node names instead of objects?
         """
         Updates the fields of the message when it is transmitted in a link.
         The actual transmission is performed by the network object.
@@ -265,7 +263,7 @@ class QueryMessage:
         Returns:
             QueryMessage: The query message itself.
         """
-        self.hops += 1
+        self.hops += 1 # maybe clearer to also decrease ttl?
         self.visited_edges.append((from_node.name, to_node.name))
         return self
 
