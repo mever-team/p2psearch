@@ -18,9 +18,9 @@ TOY_GRAPH_PARAMETERS = {
     "toy_watts_strogatz": {"n": 50, "k": 3, "p": 0.2},
 }
 
-def load_network(dataset, node_init, ppr_a):
+def load_network(dataset, init_node, ppr_a):
     graph = load_graph(dataset)
-    return P2PNetwork(dataset, graph, node_init, ppr_a)
+    return P2PNetwork(dataset, graph, init_node, ppr_a)
 
 
 def load_graph(dataset="fb"):
