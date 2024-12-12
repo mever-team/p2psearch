@@ -32,13 +32,17 @@ class P2PNetwork:
 
         self.name = name
 
-        self.nodes = [init_node(name) for name in graph.nodes]
+        self.nodes = [init_node(name) for name in graph.nodes] # must not be shuffled to be consistent with the adjacency matrix
         node_dict = {name: node for name, node in zip(graph.nodes, self.nodes)}
         self.edges = [(node_dict[u], node_dict[v]) for u, v in graph.edges]
         self.adj = nx.adjacency_matrix(graph)
 
         if ppr_a is not None: # only for simulations that change ppr_a
             self.set_ppr_a(ppr_a)
+
+    @property
+    def embeddings(self):
+        return np.array([node.embedding for node in self.nodes])
 
     def set_ppr_a(self, ppr_a):
         self.ppr_a = ppr_a
@@ -79,7 +83,6 @@ class P2PNetwork:
         """
 
         for time in range(epochs):
-            print(f"EPOCH {time+1}")
             random.shuffle(self.edges)
             for u, v in self.edges:
                 if random.random() < 0.5:
@@ -167,7 +170,6 @@ class P2PNetwork:
                     v.receive_embedding(u, mesg_to_v, self.ppr_a)
                     u.receive_embedding(v, mesg_to_u, self.ppr_a)
 
-            random.shuffle(self.nodes)
             outgoing = {}
             for u in self.nodes:
                 if u.has_queries_to_send() and random.random() < 1.0:
