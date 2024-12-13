@@ -5,12 +5,13 @@ from p2psearch.datatypes import *
 from argparse import ArgumentParser
 from tqdm import tqdm
 from pathlib import Path
+from .common import set_seed
 
 
 class Simulation:
 
     def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, n_searches_per_iter, ttl
+        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, n_searches_per_iter, ttl, seed
     ):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
@@ -24,7 +25,9 @@ class Simulation:
         self.n_iters = n_iters
         self.n_searches_per_iter = n_searches_per_iter
         self.ttl = ttl
-
+        self.seed = seed
+        set_seed(seed)
+        
         self.params = {
             "dataset_name": dataset_name,
             "graph_name": graph_name,
@@ -33,6 +36,7 @@ class Simulation:
             "n_iters": n_iters,
             "n_searches_per_iter": n_searches_per_iter,
             "ttl": ttl,
+            "seed": seed,
         }
 
     def iterate(self):
@@ -149,7 +153,13 @@ parser.add_argument(
     "-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank."
 )
 parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
-
+parser.add_argument(
+    "-s",
+    "--seed",
+    type=int,
+    default=1,
+    help="Simulation seed.",
+)
 
 args = parser.parse_args()
 
@@ -161,6 +171,7 @@ sim = Simulation(
     n_iters=args.n_iters,
     n_searches_per_iter=args.n_messages,
     ttl=args.ttl,
+    seed=args.seed,
 )
 
 results = sim()

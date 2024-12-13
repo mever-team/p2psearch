@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+from .common import set_seed
 
 
 def distance(emb_mat_1, emb_mat_2):
@@ -46,7 +47,7 @@ class Simulation:
     """
 
     def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, max_epochs, tolerance
+        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, max_epochs, tolerance, seed
     ):
         self.sim_id = str(uuid4())
         self.dset = load_dataset(dataset=dataset_name)
@@ -60,6 +61,8 @@ class Simulation:
         self.n_iters = n_iters
         self.max_epochs = max_epochs
         self.tolerance = tolerance
+        self.seed = seed
+        set_seed(seed)
 
         self.params = {
             "dataset_name": dataset_name,
@@ -69,6 +72,7 @@ class Simulation:
             "n_iters": n_iters,
             "max_epochs": max_epochs,
             "tolerance": tolerance,
+            "seed": seed
         }
 
     def iterate(self):
@@ -164,9 +168,19 @@ parser.add_argument(
     help="Maximum number of epochs to wait for convergence.",
 )
 parser.add_argument(
-    "-t", "--tolerance", type=float, default=1.0e-10, help="Tolerance for convergence."
+    "-tol",
+    "--tolerance",
+    type=float,
+    default=1.0e-10,
+    help="Tolerance for convergence.",
 )
-
+parser.add_argument(
+    "-s",
+    "--seed",
+    type=int,
+    default=1,
+    help="Simulation seed.",
+)
 args = parser.parse_args()
 
 sim = Simulation(
@@ -177,6 +191,7 @@ sim = Simulation(
     n_iters=args.n_iters,
     max_epochs=args.max_epochs,
     tolerance=args.tolerance,
+    seed=args.seed,
 )
 
 results = sim(save=True)

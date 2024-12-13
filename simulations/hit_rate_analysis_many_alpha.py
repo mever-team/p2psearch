@@ -10,6 +10,7 @@ from tqdm import tqdm
 from pathlib import Path
 from collections import defaultdict
 from matplotlib import pyplot as plt
+from .common import set_seed
 
 
 class Simulation:
@@ -22,7 +23,7 @@ class Simulation:
     For more details on the computation of the hit rates, see the hit_rate_analysis module.
     """
 
-    def __init__(self, dataset_name, graph_name, all_ppr_a, n_docs, n_iters, ttl):
+    def __init__(self, dataset_name, graph_name, all_ppr_a, n_docs, n_iters, ttl, seed):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
@@ -35,7 +36,9 @@ class Simulation:
         self.n_iters = n_iters
         self.ttl = ttl
         self.all_ppr_a = all_ppr_a
-
+        self.seed = seed
+        set_seed(seed)
+        
         self.params = {
             "dataset_name": dataset_name,
             "graph_name": graph_name,
@@ -190,6 +193,13 @@ parser.add_argument(
     type=float,
     nargs="+",
     help="List of diffusion parameters of personalized page rank to compare in a simulation.",
+)
+parser.add_argument(
+    "-s",
+    "--seed",
+    type=int,
+    default=1,
+    help="Simulation seed.",
 )
 parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
 args = parser.parse_args()

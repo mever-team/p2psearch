@@ -9,7 +9,7 @@ from tqdm import tqdm
 from pathlib import Path
 from collections import defaultdict
 from matplotlib import pyplot as plt
-
+from simulations.common import set_seed
 
 class Simulation:
     """
@@ -23,7 +23,7 @@ class Simulation:
     in a plot.
     """
 
-    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, n_iters, ttl):
+    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, n_iters, ttl, seed):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
@@ -35,6 +35,8 @@ class Simulation:
         self.n_docs = n_docs
         self.n_iters = n_iters
         self.ttl = ttl
+        self.seed = seed
+        set_seed(seed)
 
         self.params = {
             "dataset_name": dataset_name,
@@ -43,6 +45,7 @@ class Simulation:
             "n_docs": n_docs,
             "n_iters": n_iters,
             "ttl": ttl,
+            "seed": seed
         }
 
     def iterate(self):
@@ -163,7 +166,13 @@ parser.add_argument(
     "-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank."
 )
 parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
-
+parser.add_argument(
+    "-s",
+    "--seed",
+    type=int,
+    default=1,
+    help="Simulation seed.",
+)
 args = parser.parse_args()
 
 sim = Simulation(
@@ -173,6 +182,7 @@ sim = Simulation(
     n_docs=args.n_docs,
     n_iters=args.n_iters,
     ttl=args.ttl,
+    seed=args.seed
 )
 
 results = sim()
