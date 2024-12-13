@@ -17,20 +17,20 @@ Then run one of the following scripts,
 ### Convergence of decentralized personalized PageRank
 
 A simulation that verifies the convergence of the asynchronously diffused embeddings 
-to their analytical counterparts. It justifies using the analytical embeddings to 
-significantly speed up the simulation of resource discovery.
+to their analytical counterparts. It justifies using the analytical embeddings in other
+simulations for significant speed-ups.
 
 ```bash
-python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 1000 -tol 0.0000001 -d glove -g fb
+python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 500 -tol 0.0000001 -d glove -g fb
 ```
 
 `-a` is the diffusion rate of the personalized PageRank scheme<br>
 `-nd` is the number of documents to spread to the graph<br>
-`-ni` is the number of convergence experiments to simulate through<br>
+`-ni` is the number of convergence experiments to iterate<br>
 `-tol` is the numerical tolerance at which the diffusion stops<br>
 `-d` is the document dataset (currently only `glove` is available)<br>
 `-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
-`-me` is the maximum number of epochs to wait for convergence (increase if convergence is slow)
+`-me` is the maximum number of epochs to wait in one iteration for convergence (increase if convergence is slow)<br>
 `-s` is the simulation seed
 
 ### Hit rate analysis
@@ -52,7 +52,7 @@ python -m simulations.hit_rate_analysis -a 0.9 -nd 1000 -ni 500 -d glove -g fb -
 
 ### Hit rate analysis for multiple diffusion rates
 
-A simulation that compares the results of the hit rate analysis for multiple diffusion rates (the alpha parameter of the personalized PageRank).
+A simulation that compares the hit rate performance for multiple diffusion rates (the alpha parameter of the personalized PageRank).
 
 ```bash
 python -m simulations.hit_rate_analysis_many_alpha -a 0.1 0.5 0.5 -nd 1000 -ni 500 -d glove -g fb -t 50
@@ -74,7 +74,7 @@ A simulation that computes descriptive statistics for the hop count of successfu
 python -m simulations.hop_count_analysis -a 0.5 -nd 1000 -nm 10 -ni 500 -d glove -g fb -t 50
 ```
 
-`-a` is a list of diffusion rates for the personalized PageRank scheme<br>
+`-a`  is the diffusion rate of the personalized PageRank scheme<br>
 `-nd` is the number of documents to spread to the graph<br>
 `-nm` is the number of messages per query to spread to the graph in one iteration<br>
 `-ni` is the number of iterations to simulate through<br>
