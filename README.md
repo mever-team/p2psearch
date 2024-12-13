@@ -21,7 +21,7 @@ to their analytical counterparts. It justifies using the analytical embeddings i
 simulations for significant speed-ups.
 
 ```bash
-python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 5 -tol 0.0000001 -d glove -g fb
+python -m simulations.check_ppr_convergence -a 0.5 -nd 1000 -ni 5 -tol 0.0000001 -d glove -g fb
 ```
 
 `-a` is the diffusion rate of the personalized PageRank scheme<br>
@@ -38,7 +38,7 @@ python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 5 -tol 0.0000001
 A simulation that computes the search hit rate of queries as a function of the hop distance between the query and the gold document.
 
 ```bash
-python -m simulations.hit_rate_analysis -a 0.9 -nd 1000 -ni 500 -d glove -g fb -t 50
+python -m simulations.hit_rate_analysis -a 0.5 -nd 1000 -ni 500 -d glove -g fb -t 50
 ```
 
 `-a` is the diffusion rate of the personalized PageRank scheme<br>
