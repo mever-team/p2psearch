@@ -26,7 +26,6 @@ class WalkerNode(Node):
             messages (Sequence[QueryMessage]): A sequence of received messages.
             from_node (Node): The node from which the messages are received.
         """
-
         super().receive_messages(messages, from_node, kill_seen=False)
 
     def get_next_hops(self, message):
@@ -41,7 +40,6 @@ class WalkerNode(Node):
         Returns:
             List[Node]: The nodes to forward the message.
         """
-
         neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
@@ -79,7 +77,6 @@ class HardSumEmbeddingNode(WalkerNode):
         Returns:
             List[Node]: The nodes to forward the message.
         """
-
         neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
@@ -121,7 +118,6 @@ class HardSumL2EmbeddingNodeWithSpawn(WalkerNode):
         """
         Constructs a HardSumL2EmbeddingNodeWithSpawn.
         """
-
         self.spawn_interval = spawn_interval
         super(HardSumL2EmbeddingNodeWithSpawn, self).__init__(*args, **kwargs)
 
@@ -177,7 +173,6 @@ class HardSumL2EmbeddingNode(WalkerNode):
         spawn_interval (int): Hop interval at which to spawn walkers.
         --> for other attributes, refer to Node.
     """
-
     def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.
@@ -240,7 +235,6 @@ class SoftSumEmbeddingNode(WalkerNode):
         Returns:
             List[Node]: The nodes to forward the message.
         """
-
         neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []

@@ -1,5 +1,4 @@
 import numpy as np
-
 from abc import abstractmethod
 from p2psearch.datatypes import Document, QueryMessage
 from collections import defaultdict
@@ -35,7 +34,6 @@ class Node:
             name (str): The name identifying the node.
             emb_dim (int): The embedding dimension.
         """
-
         self.name = name
         self.emb_dim = emb_dim
         self.neighbors_index = dict()
@@ -51,7 +49,6 @@ class Node:
         """
         Resets the node by clearing all node structures and the node embeddings.
         """
-
         self.neighbors_index.clear()
         self.docs_index.clear()
         self.messages_queue.clear()
@@ -67,9 +64,7 @@ class Node:
         Arguments:
             doc (Document): The document to add to the node.
         """
-
         self.docs_index[doc.name] = doc
-
         self.personalization = self.get_personalization()
         self.embedding = self.personalization
 
@@ -80,7 +75,6 @@ class Node:
         Arguments:
             message (MessageQuery): A message representing a query.
         """
-
         assert message.ttl >= 0, f"{message}, ttl should be >= 0"
         message.retrieve(list(self.docs_index.values()))
         if message.is_alive():
@@ -99,7 +93,6 @@ class Node:
         Returns:
             np.array: The personalization embedding.
         """
-
         personalization = np.zeros(self.emb_dim)
         for doc in self.docs_index.values():
             personalization += doc.embedding
@@ -113,7 +106,6 @@ class Node:
         Returns:
             (np.array): An embedding to be advertised.
         """
-
         return self.embedding / max(1, len(self.neighbors_index)) ** 0.5
 
     def receive_embedding(self, neighbor, neighbor_embedding: np.array, ppr_a: float):
@@ -171,7 +163,6 @@ class Node:
         Returns:
             dict[QueryMessage, List[Node]]: The next hops to forward the messages.
         """
-
         assert all(
             [message.is_alive() for message in self.messages_queue.values()]
         ), "messages in message queue should have been alive"
@@ -201,7 +192,6 @@ class Node:
             from_node (Node): The node from which messages were received.
             kill_seen (bool): Specifies if previously seen messages should be discarded.
         """
-
         for message in messages:
             if message.name not in self.messages_seen_from:
                 message.retrieve(list(self.docs_index.values()))
@@ -229,7 +219,6 @@ class Node:
         Returns:
             Sequence[Node]: The nodes to forward the message.
         """
-
         pass
 
     def __repr__(self):

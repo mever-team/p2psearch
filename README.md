@@ -30,7 +30,7 @@ python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 1000 -t 0.000000
 of time steps to simulate through<br>
 `-t` is the numerical tolerance at which the diffusion stops<br>
 `-d` is the document dataset (currently only `glove` is available)<br>
-`-g` is the graph structure (currently only `fb is available)<br>
+`-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
 
 ### Hit rate analysis
 

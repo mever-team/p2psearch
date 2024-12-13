@@ -22,7 +22,6 @@ class FlooderNode(Node):
             queries (Sequence[QueryMessage]): A sequence of received messages.
             from_node (Node): The node from which the messages are received.
         """
-
         super().receive_messages(messages, from_node, kill_seen=True)
 
     def get_next_hops(self, message):
@@ -36,7 +35,6 @@ class FlooderNode(Node):
         Returns:
             List[Node]: The nodes to forward the message.
         """
-
         neighbors = list(self.neighbors_index)
         if len(neighbors) == 0:
             return []
