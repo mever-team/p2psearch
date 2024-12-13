@@ -17,33 +17,71 @@ Then run one of the following scripts,
 ### Convergence of decentralized personalized PageRank
 
 A simulation that verifies the convergence of the asynchronously diffused embeddings 
-to their analytical counterparts. It allows using the analytical embeddings to 
-significantly speed up the simulation.
+to their analytical counterparts. It justifies using the analytical embeddings to 
+significantly speed up the simulation of resource discovery.
 
 ```bash
-python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 1000 -t 0.0000001 -d glove -g fb
+python -m simulations.check_ppr_convergence -a 0.9 -nd 1000 -ni 1000 -tol 0.0000001 -d glove -g fb
 ```
 
 `-a` is the diffusion rate of the personalized PageRank scheme<br>
 `-nd` is the number of documents to spread to the graph<br>
-`-ni` is the number
-of time steps to simulate through<br>
-`-t` is the numerical tolerance at which the diffusion stops<br>
+`-ni` is the number of convergence experiments to simulate through<br>
+`-tol` is the numerical tolerance at which the diffusion stops<br>
 `-d` is the document dataset (currently only `glove` is available)<br>
 `-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
+`-me` is the maximum number of epochs to wait for convergence (increase if convergence is slow)
+`-s` is the simulation seed
 
 ### Hit rate analysis
 
 A simulation that computes the search hit rate of queries as a function of the hop distance between the query and the gold document.
 
-*Under construction*
+```bash
+python -m simulations.hit_rate_analysis -a 0.9 -nd 1000 -ni 500 -d glove -g fb -t 50
+```
+
+`-a` is the diffusion rate of the personalized PageRank scheme<br>
+`-nd` is the number of documents to spread to the graph<br>
+`-ni` is the number of iterations to simulate through<br>
+`-d` is the document dataset (currently only `glove` is available)<br>
+`-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
+`-t` is the time-to-live field of query messages<br>
+`-s` is the simulation seed
+
+
+### Hit rate analysis for multiple diffusion rates
+
+A simulation that compares the results of the hit rate analysis for multiple diffusion rates (the alpha parameter of the personalized PageRank).
+
+```bash
+python -m simulations.hit_rate_analysis_many_alpha -a 0.1 0.5 0.5 -nd 1000 -ni 500 -d glove -g fb -t 50
+```
+
+`-a` is a list of diffusion rates for the personalized PageRank scheme<br>
+`-nd` is the number of documents to spread to the graph<br>
+`-ni` is the number of iterations to simulate through<br>
+`-d` is the document dataset (currently only `glove` is available)<br>
+`-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
+`-t` is the time-to-live field of query messages<br>
+`-s` is the simulation seed
 
 ### Hop count analysis
 
 A simulation that computes descriptive statistics for the hop count of successful walks from the querying node until the node with the gold document.
 
-*Under construction*
+```bash
+python -m simulations.hop_count_analysis -a 0.5 -nd 1000 -nm 10 -ni 500 -d glove -g fb -t 50
+```
 
+`-a` is a list of diffusion rates for the personalized PageRank scheme<br>
+`-nd` is the number of documents to spread to the graph<br>
+`-nm` is the number of messages per query to spread to the graph in one iteration<br>
+`-ni` is the number of iterations to simulate through<br>
+`-d` is the document dataset (currently only `glove` is available)<br>
+`-g` is the graph structure from `fb`, `gnutella`, `internet`, `toy_erdos`, `toy_watts_strogatz`<br>
+`-t` is the time-to-live field of query messages<br>
+`-s` is the simulation seed
 
 ## :cyclone: About
 The topic of our paper is _decentralized search_, which requires new algorithms as the calls for a decentralized Web are mounting. Indeed, the Web is now highly centralized, marked by the dominance of global-scale social media networks and platforms. It wasn't always like this though; in the 2000s, decentralized applications and peer-to-peer networks were popular with pioneers like Gnutella, BitTorrent, and Freenet. These applications have since fallen out of favor, partly, for technical reasons, as lack of coordination brings forth significant challenges. Resource discovery discovery in particular forces queries to traverse the network based on limited knowledge of what resources are stored at each node. _Distributed hash tables_ are more efficient and scalable but support search via identifiers at the expense of richer queries.
