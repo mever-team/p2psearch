@@ -67,7 +67,6 @@ class HardSumEmbeddingNode(WalkerNode):
         --> for other attributes, refer to Node.
     """
 
-
     def get_next_hops(self, message):
         """
         Implements get_next_hops by Node and overrides Walker.

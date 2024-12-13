@@ -1,11 +1,11 @@
-from uuid import uuid4
-from ir import load_dataset
-from network import load_network
-from network.nodes import HardSumEmbeddingNode
-from datatypes import *
+from p2psearch.ir import load_dataset
+from p2psearch.network import load_network
+from p2psearch.network import HardSumEmbeddingNode
+from p2psearch.datatypes import *
 from argparse import ArgumentParser
 from tqdm import tqdm
 from pathlib import Path
+
 
 class Simulation:
 
@@ -101,7 +101,7 @@ class Simulation:
     def save(self, results):
         runs_path = Path(__file__).parent / "runs"
         runs_path.mkdir(exist_ok=True)
-        
+
         with open(runs_path / f"{self.sim_id}.txt", "w") as f:
 
             f.write("PARAMETERS\n")
@@ -115,7 +115,7 @@ class Simulation:
             f.write("-------\n")
             for res_name, res_value in results.items():
                 f.write(f"{res_name}: {res_value}\n")
-                
+
     def __call__(self, save=True):
         results = self.run()
         results = self.postprocess(results)
@@ -129,11 +129,25 @@ class Simulation:
 
 parser = ArgumentParser()
 parser.add_argument("-ni", "--n-iters", type=int, help="Number of iterations.")
-parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents in the network.")
-parser.add_argument("-nm", "--n-messages", type=int, help="Number of messages per query in the network.")
-parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
-parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
+parser.add_argument(
+    "-nd", "--n-docs", type=int, help="Number of documents in the network."
+)
+parser.add_argument(
+    "-nm", "--n-messages", type=int, help="Number of messages per query in the network."
+)
+parser.add_argument(
+    "-g", "--graph-name", type=str, default="fb", help="Name of the network graph."
+)
+parser.add_argument(
+    "-d",
+    "--dataset-name",
+    type=str,
+    default="glove",
+    help="Name of the retrieval dataset.",
+)
+parser.add_argument(
+    "-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank."
+)
 parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
 
 

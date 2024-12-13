@@ -1,7 +1,7 @@
 import numpy as np
 
 from abc import abstractmethod
-from datatypes import Document, QueryMessage
+from p2psearch.datatypes import Document, QueryMessage
 from collections import defaultdict
 
 
@@ -204,9 +204,7 @@ class Node:
 
         for message in messages:
             if message.name not in self.messages_seen_from:
-                message.retrieve(
-                    list(self.docs_index.values())
-                )
+                message.retrieve(list(self.docs_index.values()))
             elif message.name in self.messages_seen_from and kill_seen:
                 message.kill(self, reason="message has already been seen")
 

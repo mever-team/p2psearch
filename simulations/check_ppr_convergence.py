@@ -1,10 +1,7 @@
-import numpy as np
-
-from uuid import uuid4
-from ir import load_dataset
-from network import load_network
-from network.nodes import HardSumEmbeddingNode
-from datatypes import *
+from p2psearch.ir import load_dataset
+from p2psearch.network import load_network
+from p2psearch.network import HardSumEmbeddingNode
+from p2psearch.datatypes import *
 from argparse import ArgumentParser
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -33,7 +30,7 @@ class DiffusionMonitorWithEarlyStop:
     def __call__(self):
         self.embs.append(np.array([node.embedding for node in self.nodes]))
         emb_diff = distance(self.embs[-1], self.embs[-2])
-        print(f"[Diffusion monitor]: embedding variation in a round {emb_diff}")
+        # print(f"[Diffusion monitor]: embedding variation in a round {emb_diff}")
         return emb_diff > self.tolerance
 
 
@@ -48,7 +45,9 @@ class Simulation:
     The results from all iterations are summarized in a text file and plotted.
     """
 
-    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, n_iters, max_epochs, tolerance):
+    def __init__(
+        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, max_epochs, tolerance
+    ):
         self.sim_id = str(uuid4())
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
@@ -165,7 +164,7 @@ parser.add_argument(
     help="Maximum number of epochs to wait for convergence.",
 )
 parser.add_argument(
-    "-t", "--tolerance", type=float, default=10**-10, help="Tolerance for convergence."
+    "-t", "--tolerance", type=float, default=1.0e-10, help="Tolerance for convergence."
 )
 
 args = parser.parse_args()

@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from pathlib import Path
-from utils import analytic_ppr
+from p2psearch.utils import analytic_ppr
 
 
 URLS = {
@@ -40,7 +40,6 @@ def load_graph(dataset="fb"):
         print(f'generating and caching graph "{dataset}"')
         generate(dataset, edgelist_path)
     return nx.read_edgelist(edgelist_path)
-
 
 
 def load_ppr_matrix(dataset, ppr_a, symmetric=True, _adjacency_matrix=None):
@@ -112,7 +111,11 @@ def generate(dataset, edgelist_path):
                 f.write(f"{e[0]} {e[1]}\n")
 
     elif dataset == "toy_watts_strogatz":
-        n, k, p = TOY_GRAPH_PARAMETERS[dataset]["n"], TOY_GRAPH_PARAMETERS[dataset]["k"], TOY_GRAPH_PARAMETERS[dataset]["p"]
+        n, k, p = (
+            TOY_GRAPH_PARAMETERS[dataset]["n"],
+            TOY_GRAPH_PARAMETERS[dataset]["k"],
+            TOY_GRAPH_PARAMETERS[dataset]["p"],
+        )
         g = nx.connected_watts_strogatz_graph(n, k, p)
 
         with open(edgelist_path, "w") as f:
@@ -121,5 +124,5 @@ def generate(dataset, edgelist_path):
 
     else:
         raise Exception(
-            f"unknown graph \"{dataset}\", try from {list(URLS)} or {list(TOY_GRAPH_PARAMETERS)}"
+            f'unknown graph "{dataset}", try from {list(URLS)} or {list(TOY_GRAPH_PARAMETERS)}'
         )

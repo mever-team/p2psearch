@@ -52,8 +52,8 @@ wheels/
 *.egg
 
 # Other
-ir/glove/*
-!ir/glove/generate.py
+p2psearch/ir/glove/*
+!p2psearch/ir/glove/generate.py
 
 runs/
 

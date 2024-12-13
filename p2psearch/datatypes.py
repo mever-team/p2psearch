@@ -4,6 +4,7 @@ from uuid import uuid4
 from typing import Sequence
 from dataclasses import dataclass
 
+
 @dataclass
 class Document:
     """
@@ -52,7 +53,7 @@ class QuerySearch:
     The search object contains one query but can spawn multiple messages
     inside the network. It also has utility functions to monitor these
     messages and determine the best document for retrieval at any given time.
-    This is for convenience, as in a real network the retrieval results would 
+    This is for convenience, as in a real network the retrieval results would
     need to be sent back to the querying node when all messages finish their walks.
 
     Note that different search objects are always treated independently by the network
@@ -206,7 +207,9 @@ class QueryMessage:
         self.__class__.counter += 1
 
         self.query = query
-        self.ttl = ttl # treated as immutable parameter, aliveness is determined by self.hops
+        self.ttl = (
+            ttl  # treated as immutable parameter, aliveness is determined by self.hops
+        )
         self.search_id = search_id
         self.register_message_callback = register_message_callback
 
@@ -263,7 +266,7 @@ class QueryMessage:
         Returns:
             QueryMessage: The query message itself.
         """
-        self.hops += 1 # maybe clearer to also decrease ttl?
+        self.hops += 1  # maybe clearer to also decrease ttl?
         self.visited_edges.append((from_node.name, to_node.name))
         return self
 

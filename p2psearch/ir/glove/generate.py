@@ -4,7 +4,6 @@ import random as rand
 import gensim.downloader as api
 
 
-
 def normalize(arr, axis=1):
     return arr / np.linalg.norm(arr, axis=axis, keepdims=True)
 
@@ -31,7 +30,7 @@ for word in words:
     similar_word, score = model.most_similar(word, topn=1)[0]
     if score > 0.6 and word not in doc_words and similar_word not in que_words:
         que_words.add(word)
-        doc_words.add(similar_word) # some queries may be similar to the same doc
+        doc_words.add(similar_word)  # some queries may be similar to the same doc
         qrels[word] = similar_word
     if len(que_words) >= n_queries:
         break
@@ -41,7 +40,9 @@ que_words, doc_words, other_words = list(que_words), list(doc_words), list(other
 # create ids
 que2id = {que_word: f"que{i}" for i, que_word in enumerate(que_words)}
 doc2id = {doc_word: f"doc{i}" for i, doc_word in enumerate(doc_words)}
-other2id = {other_word: f"doc{len(doc2id)+i}" for i, other_word in enumerate(other_words)}
+other2id = {
+    other_word: f"doc{len(doc2id)+i}" for i, other_word in enumerate(other_words)
+}
 qrels = {que2id[que_word]: doc2id[doc_word] for que_word, doc_word in qrels.items()}
 
 
@@ -56,7 +57,9 @@ dids = np.concatenate([docids, otherids])
 dvecs = np.row_stack([docvecs, othervecs])
 scores = qvecs @ dvecs.transpose()
 correctdocs = np.argmax(scores, axis=1)
-validation_qrels = {qids[qindex]: dids[dindex] for qindex, dindex in enumerate(correctdocs)}
+validation_qrels = {
+    qids[qindex]: dids[dindex] for qindex, dindex in enumerate(correctdocs)
+}
 
 n_correct = np.sum([qrels[qid] == validation_qrels[qid] for qid in qids])
 print(f"[dataset generation script]: {n_correct}/{len(qrels)} validated")
@@ -68,7 +71,7 @@ for data, label in zip([que2id, doc2id, other2id], ["queries", "docs", "other_do
     filepath = os.path.join(DIRPATH, f"{label}.txt")
     with open(filepath, "w", encoding="utf8") as f:
         for item, id_ in data.items():
-            item = item.replace('\t', ' ')
+            item = item.replace("\t", " ")
             f.write(f"{id_}\t{item}\n")
 
     filepath = os.path.join(DIRPATH, f"{label}_embs")

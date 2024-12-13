@@ -2,10 +2,11 @@ import random
 import numpy as np
 import networkx as nx
 
-from datatypes import Document, QueryMessage
+from p2psearch.datatypes import Document, QueryMessage
 from typing import List
 from .loader import load_ppr_matrix, load_graph
 from .nodes.base import Node
+
 
 def load_network(dataset, init_node, ppr_a):
     graph = load_graph(dataset)
@@ -21,7 +22,7 @@ class P2PNetwork:
         edges (list[tuple]): The edgelist of the network.
     """
 
-    def __init__(self, name: str, graph: nx.Graph, init_node, ppr_a: float=None):
+    def __init__(self, name: str, graph: nx.Graph, init_node, ppr_a: float = None):
         """
         Constructs a Simulation.
 
@@ -32,12 +33,14 @@ class P2PNetwork:
 
         self.name = name
 
-        self.nodes = [init_node(name) for name in graph.nodes] # must not be shuffled to be consistent with the adjacency matrix
+        self.nodes = [
+            init_node(name) for name in graph.nodes
+        ]  # must not be shuffled to be consistent with the adjacency matrix
         node_dict = {name: node for name, node in zip(graph.nodes, self.nodes)}
         self.edges = [(node_dict[u], node_dict[v]) for u, v in graph.edges]
         self.adj = nx.adjacency_matrix(graph)
 
-        if ppr_a is not None: # only for simulations that change ppr_a
+        if ppr_a is not None:  # only for simulations that change ppr_a
             self.set_ppr_a(ppr_a)
 
     @property
@@ -189,13 +192,14 @@ class P2PNetwork:
         for node in self.nodes:
             node.clear()
 
-    def stream_hops(self, start_node, max_hop=float('inf')):
+    def stream_hops(self, start_node, max_hop=float("inf")):
         hop = 0
         visited_nodes, current_nodes, next_nodes = set(), set(), {start_node}
-        while len(next_nodes) > 0 and hop < max_hop+1:
+        while len(next_nodes) > 0 and hop < max_hop + 1:
             hop += 1
             yield list(next_nodes)
             current_nodes = next_nodes
             visited_nodes.update(next_nodes)
-            next_nodes = set.union(*[set(node.neighbors_index) for node in current_nodes]).difference(visited_nodes)
-
+            next_nodes = set.union(
+                *[set(node.neighbors_index) for node in current_nodes]
+            ).difference(visited_nodes)

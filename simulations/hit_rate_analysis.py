@@ -1,10 +1,9 @@
-import random 
+import random
 
-from uuid import uuid4
-from ir import load_dataset
-from network import load_network
-from network.nodes import HardSumEmbeddingNode
-from datatypes import *
+from p2psearch.ir import load_dataset
+from p2psearch.network import load_network
+from p2psearch.network import HardSumEmbeddingNode
+from p2psearch.datatypes import *
 from argparse import ArgumentParser
 from tqdm import tqdm
 from pathlib import Path
@@ -12,23 +11,19 @@ from collections import defaultdict
 from matplotlib import pyplot as plt
 
 
-
 class Simulation:
-
     """
-    A simulation that computes the top-1 retrieval accuracy as a function of the hop distance 
+    A simulation that computes the top-1 retrieval accuracy as a function of the hop distance
     between the query and the gold document.
 
     In each iteration, the simulation samples a query and scatters a given number of documents
-    in the network, including the gold document. It then starts multiple search operations with 
+    in the network, including the gold document. It then starts multiple search operations with
     the same query from multiple nodes, specifically, one per each distance away from the node
     with the gold document. At the end, the hit rates are aggregated for each distance and saved
     in a plot.
     """
 
-    def __init__(
-        self, dataset_name, graph_name, ppr_a, n_docs, n_iters, ttl
-    ):
+    def __init__(self, dataset_name, graph_name, ppr_a, n_docs, n_iters, ttl):
         self.sim_id = uuid4()
         self.dset = load_dataset(dataset=dataset_name)
         self.network = load_network(
@@ -68,11 +63,16 @@ class Simulation:
         self.network.diffuse_fast_embeddings()
 
         # self.print("scattering query messages")
-        hop2node = {hop: random.choice(nodes_at_hop) for hop, nodes_at_hop in enumerate(self.network.stream_hops(start_node=gold_node))}
-        
+        hop2node = {
+            hop: random.choice(nodes_at_hop)
+            for hop, nodes_at_hop in enumerate(
+                self.network.stream_hops(start_node=gold_node)
+            )
+        }
+
         hop2search = {}
         for hop, node in hop2node.items():
-            search = QuerySearch(query) 
+            search = QuerySearch(query)
             hop2search[hop] = search
             node.add_message(search.spawn_message(self.ttl))
 
@@ -80,34 +80,34 @@ class Simulation:
         _ = self.network.forward_messages(epochs=5 * self.ttl, monitor=None)
 
         # self.print("computing stats")
-        hop2success = {hop:int(search.candidate_doc == gold_doc) for hop, search in hop2search.items()}
-    
+        hop2success = {
+            hop: int(search.candidate_doc == gold_doc)
+            for hop, search in hop2search.items()
+        }
+
         return {"hop2success": hop2success}
 
     def run(self):
-        
+
         hop2success = defaultdict(lambda: [])
         for _ in tqdm(range(self.n_iters)):
             results = self.iterate()
             for hop, success in results["hop2success"].items():
                 hop2success[hop].append(success)
-        return {
-            "hop2success": hop2success
-        }
+        return {"hop2success": hop2success}
 
     def postprocess(self, results):
         hops = sorted(list(results["hop2success"]))
-        hit_rates = [np.mean(results["hop2success"][hop])  for hop in hops]
+        hit_rates = [np.mean(results["hop2success"][hop]) for hop in hops]
         return {
             "hops": hops,
             "hit_rates": hit_rates,
         }
 
-
     def save(self, results):
         run_path = Path(__file__).parent / "runs" / str(self.sim_id)
         run_path.mkdir(exist_ok=True)
-        
+
         with open(run_path / f"results.txt", "w") as f:
 
             f.write("PARAMETERS\n")
@@ -128,7 +128,7 @@ class Simulation:
         ax.grid()
         ax.set_xlabel("TTL (hops)", family="serif", size=16)
         ax.set_ylabel("Accuracy (%)", family="serif", size=16)
-        ax.legend(prop={'family':"serif", 'size': 13})
+        ax.legend(prop={"family": "serif", "size": 13})
         fig.savefig(run_path / "plot.pdf")
 
     def __call__(self, save=True):
@@ -143,11 +143,25 @@ class Simulation:
 
 
 parser = ArgumentParser()
-parser.add_argument("-ni", "--n-iters", type=int, help="Number of iterations.")
-parser.add_argument("-nd", "--n-docs", type=int, help="Number of documents in the network.")
-parser.add_argument("-g", "--graph-name", type=str, default="fb", help="Name of the network graph.")
-parser.add_argument("-d", "--dataset-name", type=str, default="glove", help="Name of the retrieval dataset.")
-parser.add_argument("-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank.")
+parser.add_argument(
+    "-ni", "--n-iters", type=int, default=1000, help="Number of iterations."
+)
+parser.add_argument(
+    "-nd", "--n-docs", type=int, help="Number of documents in the network."
+)
+parser.add_argument(
+    "-g", "--graph-name", type=str, default="fb", help="Name of the network graph."
+)
+parser.add_argument(
+    "-d",
+    "--dataset-name",
+    type=str,
+    default="glove",
+    help="Name of the retrieval dataset.",
+)
+parser.add_argument(
+    "-a", "--ppr-a", type=float, help="Diffusion parameter of personalized page rank."
+)
 parser.add_argument("-t", "--ttl", type=int, help="Time-to-live of the query messages.")
 
 args = parser.parse_args()

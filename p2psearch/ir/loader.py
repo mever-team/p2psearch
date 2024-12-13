@@ -3,7 +3,7 @@ import numpy as np
 import random as rnd
 
 from pathlib import Path
-from datatypes import Document, Query
+from p2psearch.datatypes import Document, Query
 
 
 class NamedEmbeddings:
