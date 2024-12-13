@@ -27,7 +27,7 @@ EU project acknowledgements: AI4Media (GA 951911), MediaVerse (GA 957252) and HE
 ```
 
 ```
-Proof of the convergence of the asynchronous diffusion
+Proof of the convergence of the asynchronous graph diffusion
 E. Krasanakis, S. Papadopoulos, and I. Kompatsiaris, 
 “p2pgnn: A decentralized graph neural network for node classification in peer-to-peer networks,”
 IEEE Access, vol. 10, pp. 34 755–34 765, 2022.
