@@ -9,7 +9,8 @@ from tqdm import tqdm
 from pathlib import Path
 from collections import defaultdict
 from matplotlib import pyplot as plt
-from simulations.common import set_seed
+from .common import set_seed
+
 
 class Simulation:
     """
@@ -45,7 +46,7 @@ class Simulation:
             "n_docs": n_docs,
             "n_iters": n_iters,
             "ttl": ttl,
-            "seed": seed
+            "seed": seed,
         }
 
     def iterate(self):
@@ -108,8 +109,8 @@ class Simulation:
         }
 
     def save(self, results):
-        run_path = Path(__file__).parent / "runs" / str(self.sim_id)
-        run_path.mkdir(exist_ok=True)
+        run_path = Path(__file__).parent / "hit_rate_analysis/runs" / str(self.sim_id)
+        run_path.mkdir(exist_ok=True, parents=True)
 
         with open(run_path / f"results.txt", "w") as f:
 
@@ -182,7 +183,7 @@ sim = Simulation(
     n_docs=args.n_docs,
     n_iters=args.n_iters,
     ttl=args.ttl,
-    seed=args.seed
+    seed=args.seed,
 )
 
 results = sim()

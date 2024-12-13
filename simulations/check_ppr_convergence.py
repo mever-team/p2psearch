@@ -98,7 +98,7 @@ class Simulation:
         return {"all_emb_diffs": all_emb_diffs}
 
     def save(self, results):
-        run_path = Path(__file__).parent / "runs" / str(self.sim_id)
+        run_path = Path(__file__).parent / "check_ppr_convergence/runs" / str(self.sim_id)
         run_path.mkdir(exist_ok=True, parents=True)
 
         with open(run_path / f"results.txt", "w") as f:

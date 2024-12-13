@@ -103,8 +103,8 @@ class Simulation:
         }
 
     def save(self, results):
-        runs_path = Path(__file__).parent / "runs"
-        runs_path.mkdir(exist_ok=True)
+        runs_path = Path(__file__).parent / "hop_count_analysis/runs"
+        runs_path.mkdir(exist_ok=True, parents=True)
 
         with open(runs_path / f"{self.sim_id}.txt", "w") as f:
 

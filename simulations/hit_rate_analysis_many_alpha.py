@@ -38,7 +38,7 @@ class Simulation:
         self.all_ppr_a = all_ppr_a
         self.seed = seed
         set_seed(seed)
-        
+
         self.params = {
             "dataset_name": dataset_name,
             "graph_name": graph_name,
@@ -46,6 +46,7 @@ class Simulation:
             "n_docs": n_docs,
             "n_iters": n_iters,
             "ttl": ttl,
+            "seed": seed,
         }
 
     def iterate(self):
@@ -121,7 +122,7 @@ class Simulation:
         }
 
     def save(self, alpha2results):
-        run_path = Path(__file__).parent / "runs" / str(self.sim_id)
+        run_path = Path(__file__).parent / "hit_rate_analysis_many_alpha/runs" / str(self.sim_id)
         run_path.mkdir(exist_ok=True, parents=True)
 
         with open(run_path / f"results.txt", "w") as f:
@@ -211,6 +212,7 @@ sim = Simulation(
     n_docs=args.n_docs,
     n_iters=args.n_iters,
     ttl=args.ttl,
+    seed=args.seed,
 )
 
 results = sim()
